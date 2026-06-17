@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import {
-  Bell, BellOff, Home, CheckCircle2, Share, MoreVertical,
-  Plus, Smartphone, Monitor, ChevronRight, RefreshCw,
+  Bell, BellOff, Home, CheckCircle2, Share,
+  Plus, Smartphone, Monitor, RefreshCw,
 } from "lucide-react";
 
 type OS = "ios" | "android" | "desktop" | "unknown";
