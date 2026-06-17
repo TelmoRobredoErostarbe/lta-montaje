@@ -72,12 +72,25 @@ export function AdminDashboardPage() {
 
   async function sendTestPush() {
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
-    const res = await supabase.functions.invoke("send-push", {
-      body: { title: "LTA Montaje", body: "Prueba de notificación push desde el panel admin." },
-    });
-    if (res.error) alert("Error: " + res.error.message);
-    else alert(`Enviado a ${res.data?.sent ?? 0} dispositivo(s)`);
+    if (!session) { alert("Sin sesión"); return; }
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-push`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ title: "LTA Montaje", body: "Prueba de notificación push." }),
+        }
+      );
+      const data = await res.json();
+      if (!res.ok) alert(`Error ${res.status}: ${JSON.stringify(data)}`);
+      else alert(`Enviado a ${data.sent ?? 0} dispositivo(s)${data.errors?.length ? "\nErrores: " + data.errors.join(", ") : ""}`);
+    } catch (e) {
+      alert("Error de red: " + String(e));
+    }
   }
 
   const filtered = eventos.filter(e =>
