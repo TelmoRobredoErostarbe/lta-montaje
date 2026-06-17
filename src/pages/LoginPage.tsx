@@ -1,8 +1,10 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 
 export function LoginPage() {
   const { signIn } = useAuth();
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -13,8 +15,12 @@ export function LoginPage() {
     setLoading(true);
     setError("");
     const { error } = await signIn(email, password);
-    if (error) setError(error.message);
-    setLoading(false);
+    if (error) {
+      setError(error.message);
+      setLoading(false);
+    } else {
+      navigate("/");
+    }
   }
 
   return (
