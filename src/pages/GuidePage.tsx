@@ -59,6 +59,15 @@ export function GuidePage() {
     setRequestingNotif(false);
   }
 
+  async function sendTestNotif() {
+    const reg = await navigator.serviceWorker.ready;
+    reg.showNotification("LTA Montaje 🎉", {
+      body: "Las notificaciones funcionan correctamente.",
+      icon: "/lasttour-logo.png",
+      badge: "/lasttour-logo.png",
+    });
+  }
+
   async function triggerInstall() {
     const prompt = (window as any).__deferredInstallPrompt;
     if (!prompt) {
@@ -212,9 +221,18 @@ export function GuidePage() {
           )}
 
           {notifStatus === "granted" && (
-            <div className="mt-3 flex items-center gap-2 text-xs text-green-700 bg-green-50 rounded-xl px-3 py-2.5">
-              <CheckCircle2 size={13} />
-              Notificaciones activadas correctamente
+            <div className="mt-3 space-y-2">
+              <div className="flex items-center gap-2 text-xs text-green-700 bg-green-50 rounded-xl px-3 py-2.5">
+                <CheckCircle2 size={13} />
+                Notificaciones activadas correctamente
+              </div>
+              <button
+                onClick={sendTestNotif}
+                className="w-full border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-medium py-2.5 rounded-xl flex items-center justify-center gap-2 transition-colors"
+              >
+                <Bell size={14} />
+                Enviar notificación de prueba
+              </button>
             </div>
           )}
 
