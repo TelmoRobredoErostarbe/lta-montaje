@@ -20,8 +20,20 @@ window.addEventListener("beforeinstallprompt", (e) => {
   (window as any).__deferredInstallPrompt = e;
 });
 
-createRoot(document.getElementById('root')!).render(
+const root = createRoot(document.getElementById('root')!);
+root.render(
   <StrictMode>
     <App />
   </StrictMode>,
-)
+);
+
+// Remove splash once React has painted
+requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    const splash = document.getElementById('splash');
+    if (splash) {
+      splash.classList.add('fade-out');
+      splash.addEventListener('transitionend', () => splash.remove(), { once: true });
+    }
+  });
+});
