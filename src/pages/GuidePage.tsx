@@ -3,6 +3,9 @@ import {
   Bell, BellOff, Home, CheckCircle2, Share,
   Plus, Smartphone, Monitor, RefreshCw,
 } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+
+const VAPID_PUBLIC = "BMGegw1BqBPkLsavAj5gRIgt9WW6CFkYaLs0abu7d7-QCxcJiLn3PPDPl7LomUxNRfHmKx8xWkIeeCysGTDy7ZE";
 
 type OS = "ios" | "android" | "desktop" | "unknown";
 type NotifStatus = "default" | "granted" | "denied" | "unsupported";
@@ -37,6 +40,8 @@ export function GuidePage() {
       setNotifStatus("unsupported");
     } else {
       setNotifStatus(Notification.permission as NotifStatus);
+      // If already granted, ensure push subscription is saved
+      if (Notification.permission === "granted") subscribeToPush();
     }
 
     // Install status
@@ -56,7 +61,29 @@ export function GuidePage() {
     setRequestingNotif(true);
     const perm = await Notification.requestPermission();
     setNotifStatus(perm as NotifStatus);
+    if (perm === "granted") await subscribeToPush();
     setRequestingNotif(false);
+  }
+
+  async function subscribeToPush() {
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const existing = await reg.pushManager.getSubscription();
+      const sub = existing ?? await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC),
+      });
+      const { endpoint, keys } = sub.toJSON() as any;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from("push_subscriptions").upsert(
+          { user_id: user.id, endpoint, p256dh: keys.p256dh, auth: keys.auth },
+          { onConflict: "user_id,endpoint" }
+        );
+      }
+    } catch (e) {
+      console.warn("Push subscribe failed:", e);
+    }
   }
 
   async function sendTestNotif() {
@@ -295,6 +322,17 @@ export function GuidePage() {
       </div>
     </div>
   );
+}
+
+/* ── Helpers ── */
+
+function urlBase64ToUint8Array(base64String: string): ArrayBuffer {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const raw = atob(base64);
+  const arr = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+  return arr.buffer as ArrayBuffer;
 }
 
 /* ── Sub-components ── */

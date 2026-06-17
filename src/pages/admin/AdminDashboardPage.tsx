@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useNavigate } from "react-router-dom";
-import { MapPin, ChevronRight, CalendarDays, CheckCircle2, Search } from "lucide-react";
+import { MapPin, ChevronRight, CalendarDays, CheckCircle2, Search, Bell } from "lucide-react";
 import { formatoBadgeClass } from "@/lib/formatoColors";
 
 interface EventoAdmin {
@@ -70,6 +70,16 @@ export function AdminDashboardPage() {
     setLoading(false);
   }
 
+  async function sendTestPush() {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    const res = await supabase.functions.invoke("send-push", {
+      body: { title: "LTA Montaje", body: "Prueba de notificación push desde el panel admin." },
+    });
+    if (res.error) alert("Error: " + res.error.message);
+    else alert(`Enviado a ${res.data?.sent ?? 0} dispositivo(s)`);
+  }
+
   const filtered = eventos.filter(e =>
     !search || e.codigo?.toLowerCase().includes(search.toLowerCase()) ||
     e.ciudad?.toLowerCase().includes(search.toLowerCase()) ||
@@ -129,9 +139,18 @@ export function AdminDashboardPage() {
 
   return (
     <div className="max-w-lg mx-auto px-4 py-6">
-      <div className="mb-5">
-        <h1 className="text-lg font-semibold text-slate-900">Panel de montaje</h1>
-        <p className="text-sm text-slate-400 mt-0.5">Estado del montaje por evento</p>
+      <div className="mb-5 flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-lg font-semibold text-slate-900">Panel de montaje</h1>
+          <p className="text-sm text-slate-400 mt-0.5">Estado del montaje por evento</p>
+        </div>
+        <button
+          onClick={sendTestPush}
+          className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3 py-2 rounded-xl transition-colors shrink-0"
+          title="Enviar push de prueba a todos"
+        >
+          <Bell size={13} /> Push test
+        </button>
       </div>
 
       {/* Search */}
