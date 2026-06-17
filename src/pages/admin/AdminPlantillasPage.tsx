@@ -86,20 +86,49 @@ export function AdminPlantillasPage() {
     setSaving(true);
     const p = plantillas.find(p => p.id === plantillaId)!;
     const orden = (p.items.length > 0 ? Math.max(...p.items.map(i => i.orden)) : -1) + 1;
-    await supabase.from("montaje_plantilla_items").insert({
+    const offsetMin = parseInt(ni.offset) || 0;
+
+    const { data: newItemData } = await supabase.from("montaje_plantilla_items").insert({
       plantilla_id: plantillaId,
       nombre: ni.nombre.trim(),
       descripcion: ni.descripcion.trim() || null,
       orden,
-      offset_minutos: parseInt(ni.offset) || 0,
-    });
+      offset_minutos: offsetMin,
+    }).select("id").single();
+
+    // Sync: add checkpoint to all events that use this template by default
+    if (newItemData) {
+      const { data: eventos } = await supabase
+        .from("eventos")
+        .select("id, fecha, hora_inicio")
+        .eq("formato", tipo);
+      if (eventos && eventos.length > 0) {
+        await supabase.from("montaje_checkpoints").insert(
+          eventos.map((ev: any) => {
+            const horaBase = ev.hora_inicio ? `${ev.fecha}T${ev.hora_inicio}` : `${ev.fecha}T10:00:00`;
+            const baseTs = new Date(horaBase).getTime();
+            return {
+              evento_id: ev.id,
+              plantilla_item_id: newItemData.id,
+              nombre: ni.nombre.trim(),
+              descripcion: ni.descripcion.trim() || null,
+              orden,
+              hora_recordatorio: new Date(baseTs + offsetMin * 60000).toISOString(),
+            };
+          })
+        );
+      }
+    }
+
     setNewItem(prev => ({ ...prev, [tipo]: { nombre: "", descripcion: "", offset: "0" } }));
     await load();
     setSaving(false);
   }
 
   async function deleteItem(itemId: string) {
-    if (!confirm("¿Eliminar este paso?")) return;
+    if (!confirm("¿Eliminar este paso? Se eliminará también de todos los eventos que usen esta plantilla.")) return;
+    // Delete checkpoints linked to this template item first
+    await supabase.from("montaje_checkpoints").delete().eq("plantilla_item_id", itemId);
     await supabase.from("montaje_plantilla_items").delete().eq("id", itemId);
     await load();
   }
