@@ -16,7 +16,7 @@ export function LoginPage() {
     setError("");
     const { error } = await signIn(email, password);
     if (error) {
-      setError(error.message);
+      setError("Email o contraseña incorrectos");
       setLoading(false);
     } else {
       navigate("/");
@@ -24,48 +24,72 @@ export function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4">
-      <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 bg-white rounded-2xl mb-4 shadow-lg">
-            <span className="text-2xl">📸</span>
+    <div className="min-h-screen bg-white flex flex-col">
+      {/* Top color strip */}
+      <div className="h-1 bg-gradient-to-r from-slate-800 via-slate-600 to-slate-800" />
+
+      <div className="flex-1 flex flex-col items-center justify-center px-6 py-12">
+        {/* Logo */}
+        <div className="mb-10 flex flex-col items-center gap-4">
+          <img
+            src="/lasttour-logo.png"
+            alt="Last Tour América"
+            className="h-16 w-auto object-contain"
+          />
+          <div className="text-center">
+            <h1 className="text-xl font-semibold text-slate-900 tracking-tight">Portal de Montaje</h1>
+            <p className="text-sm text-slate-400 mt-0.5">Control de montaje de eventos</p>
           </div>
-          <h1 className="text-2xl font-bold text-white">LTA Montaje</h1>
-          <p className="text-gray-400 text-sm mt-1">Control de montaje de eventos</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-gray-900 rounded-2xl p-6 space-y-4 border border-gray-800">
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4">
           <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1.5">Email</label>
+            <label className="block text-xs font-medium text-slate-500 mb-1.5 uppercase tracking-wide">
+              Correo electrónico
+            </label>
             <input
               type="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
               required
-              className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-blue-500"
+              autoComplete="email"
+              className="w-full border border-slate-200 rounded-xl px-4 py-3 text-slate-900 text-sm placeholder-slate-300 focus:outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-100 transition-all"
               placeholder="tu@email.com"
             />
           </div>
+
           <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1.5">Contraseña</label>
+            <label className="block text-xs font-medium text-slate-500 mb-1.5 uppercase tracking-wide">
+              Contraseña
+            </label>
             <input
               type="password"
               value={password}
               onChange={e => setPassword(e.target.value)}
               required
-              className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-blue-500"
+              autoComplete="current-password"
+              className="w-full border border-slate-200 rounded-xl px-4 py-3 text-slate-900 text-sm placeholder-slate-300 focus:outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-100 transition-all"
               placeholder="••••••••"
             />
           </div>
-          {error && <p className="text-red-400 text-xs">{error}</p>}
+
+          {error && (
+            <div className="bg-red-50 border border-red-100 rounded-xl px-4 py-3 text-sm text-red-600">
+              {error}
+            </div>
+          )}
+
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold py-3 rounded-xl text-sm transition-colors"
+            className="w-full bg-slate-900 hover:bg-slate-700 disabled:opacity-50 text-white font-semibold py-3.5 rounded-xl text-sm transition-colors mt-2"
           >
             {loading ? "Entrando…" : "Entrar"}
           </button>
         </form>
+
+        <p className="text-xs text-slate-300 mt-10">Last Tour América SAS · Portal interno</p>
       </div>
     </div>
   );

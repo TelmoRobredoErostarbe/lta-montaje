@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useNavigate } from "react-router-dom";
-import { MapPin, ChevronRight, Settings } from "lucide-react";
+import { MapPin, ChevronRight, CalendarDays, CheckCircle2, Search } from "lucide-react";
+import { formatoBadgeClass } from "@/lib/formatoColors";
 
 interface EventoAdmin {
   id: string;
@@ -75,75 +76,100 @@ export function AdminDashboardPage() {
     e.coord_nombre?.toLowerCase().includes(search.toLowerCase())
   );
 
-  function EventRow({ e }: { e: EventoAdmin }) {
+  const today = new Date().toISOString().slice(0, 10);
+  const upcoming = filtered.filter(e => e.fecha >= today);
+  const past = filtered.filter(e => e.fecha < today);
+
+  function EventCard({ e }: { e: EventoAdmin }) {
     const pct = e.total > 0 ? Math.round((e.completados / e.total) * 100) : 0;
     const done = e.completados === e.total && e.total > 0;
     const noSetup = e.total === 0;
+    const badgeClass = formatoBadgeClass(e.formato);
+
     return (
       <button
         onClick={() => navigate(`/admin/evento/${e.id}`)}
-        className="w-full text-left bg-white rounded-xl border border-gray-100 p-4 flex items-center gap-4 hover:shadow-sm transition-shadow"
+        className="w-full text-left bg-white rounded-2xl border border-slate-100 shadow-sm p-4 flex items-center gap-3 hover:shadow-md transition-all active:scale-[0.99]"
       >
-        <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white text-xs font-bold shrink-0 ${done ? "bg-green-500" : noSetup ? "bg-gray-200 text-gray-400" : "bg-blue-600"}`}>
-          {done ? "✓" : noSetup ? "–" : `${pct}%`}
-        </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <p className="font-semibold text-sm text-gray-900 truncate">{e.codigo || e.id.slice(0, 8)}</p>
-            <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 rounded text-gray-500 shrink-0">{e.formato}</span>
+          <div className="flex items-center gap-2 mb-1">
+            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border ${badgeClass}`}>
+              {e.formato}
+            </span>
+            <p className="font-semibold text-slate-900 text-sm truncate">{e.codigo}</p>
           </div>
-          <div className="flex items-center gap-3 mt-0.5 text-xs text-gray-500">
-            <span className="flex items-center gap-1"><MapPin size={10} />{e.ciudad}</span>
-            <span>{e.fecha.slice(8, 10)}/{e.fecha.slice(5, 7)}</span>
+          <div className="flex items-center gap-3 text-xs text-slate-400 flex-wrap">
+            <span className="flex items-center gap-1"><MapPin size={11} />{e.ciudad}</span>
+            <span className="flex items-center gap-1">
+              <CalendarDays size={11} />
+              {new Date(e.fecha + "T12:00:00").toLocaleDateString("es-CO", { day: "numeric", month: "short" })}
+            </span>
             <span className="truncate">{e.coord_nombre}</span>
           </div>
           {!noSetup && (
-            <div className="mt-1.5 w-full h-1 bg-gray-100 rounded-full">
-              <div className={`h-1 rounded-full ${done ? "bg-green-500" : "bg-blue-500"}`} style={{ width: `${pct}%` }} />
+            <div className="mt-2.5">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[10px] text-slate-400">{e.completados}/{e.total} pasos</span>
+                {done && <span className="text-[10px] font-semibold text-green-600 flex items-center gap-0.5"><CheckCircle2 size={10} /> Completo</span>}
+              </div>
+              <div className="w-full h-1.5 bg-slate-100 rounded-full">
+                <div
+                  className={`h-1.5 rounded-full transition-all ${done ? "bg-green-500" : "bg-slate-800"}`}
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
             </div>
           )}
+          {noSetup && <p className="text-[10px] text-slate-300 mt-1">Sin checklist asignado</p>}
         </div>
-        <ChevronRight size={14} className="text-gray-300 shrink-0" />
+        <ChevronRight size={15} className="text-slate-300 shrink-0" />
       </button>
     );
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 pb-24">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h1 className="text-xl font-bold text-gray-900">Montaje · Admin</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Progreso por evento</p>
-        </div>
-        <button
-          onClick={() => navigate("/admin/plantillas")}
-          className="flex items-center gap-1.5 px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-xl text-xs font-semibold text-gray-700 transition-colors"
-        >
-          <Settings size={13} /> Plantillas
-        </button>
+    <div className="max-w-lg mx-auto px-4 py-6">
+      <div className="mb-5">
+        <h1 className="text-lg font-semibold text-slate-900">Panel de montaje</h1>
+        <p className="text-sm text-slate-400 mt-0.5">Estado del montaje por evento</p>
       </div>
 
-      <input
-        type="text"
-        value={search}
-        onChange={e => setSearch(e.target.value)}
-        placeholder="Buscar evento, ciudad o coordinador…"
-        className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm mb-4 focus:outline-none focus:border-blue-400"
-      />
+      {/* Search */}
+      <div className="relative mb-5">
+        <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+        <input
+          type="text"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Buscar evento, ciudad o coordinador…"
+          className="w-full bg-white border border-slate-200 rounded-xl pl-9 pr-4 py-2.5 text-sm focus:outline-none focus:border-slate-400 transition-colors"
+        />
+      </div>
 
       {loading ? (
-        <div className="flex justify-center py-16">
-          <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+        <div className="flex justify-center py-20">
+          <div className="w-5 h-5 border-2 border-slate-300 border-t-slate-700 rounded-full animate-spin" />
         </div>
       ) : (
-        <div className="space-y-2">
-          {filtered.map(e => <EventRow key={e.id} e={e} />)}
+        <>
+          {upcoming.length > 0 && (
+            <section className="mb-6">
+              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-3">Próximos</p>
+              <div className="space-y-2.5">{upcoming.map(e => <EventCard key={e.id} e={e} />)}</div>
+            </section>
+          )}
+          {past.length > 0 && (
+            <section>
+              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-3">Anteriores</p>
+              <div className="space-y-2.5">{past.map(e => <EventCard key={e.id} e={e} />)}</div>
+            </section>
+          )}
           {filtered.length === 0 && (
-            <div className="text-center py-16 text-gray-400 text-sm">
+            <div className="text-center py-20 text-slate-400 text-sm">
               {search ? "No hay resultados" : "No hay eventos con coordinador asignado"}
             </div>
           )}
-        </div>
+        </>
       )}
     </div>
   );
