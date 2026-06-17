@@ -1,6 +1,6 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { Home, Settings, LogOut } from "lucide-react";
+import { Home, Settings, LogOut, BookOpen } from "lucide-react";
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const { isAdmin, signOut } = useAuth();
@@ -17,6 +17,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const navItems = [
     { route: homeRoute, icon: Home, label: "Inicio", match: (p: string) => p === "/admin" || p === "/eventos" || p.startsWith("/evento/") || p.startsWith("/admin/evento/") },
     ...(isAdmin ? [{ route: "/admin/plantillas", icon: Settings, label: "Plantillas", match: (p: string) => p === "/admin/plantillas" }] : []),
+    { route: "/guia", icon: BookOpen, label: "Guía", match: (p: string) => p === "/guia" },
   ];
 
   return (

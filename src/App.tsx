@@ -7,6 +7,7 @@ import { CoordEventoDetallePage } from "@/pages/coord/CoordEventoDetallePage";
 import { AdminDashboardPage } from "@/pages/admin/AdminDashboardPage";
 import { AdminEventoDetallePage } from "@/pages/admin/AdminEventoDetallePage";
 import { AdminPlantillasPage } from "@/pages/admin/AdminPlantillasPage";
+import { GuidePage } from "@/pages/GuidePage";
 
 function AuthGuard({ children, require: req }: { children: React.ReactNode; require?: "admin" }) {
   const { user, loading, isAdmin } = useAuth();
@@ -40,6 +41,9 @@ export default function App() {
         <Route path="/admin" element={<AuthGuard require="admin"><Layout><AdminDashboardPage /></Layout></AuthGuard>} />
         <Route path="/admin/evento/:id" element={<AuthGuard require="admin"><Layout><AdminEventoDetallePage /></Layout></AuthGuard>} />
         <Route path="/admin/plantillas" element={<AuthGuard require="admin"><Layout><AdminPlantillasPage /></Layout></AuthGuard>} />
+
+        {/* Guía (todos) */}
+        <Route path="/guia" element={<AuthGuard><Layout><GuidePage /></Layout></AuthGuard>} />
 
         <Route path="/" element={<AuthGuard><RootRedirect /></AuthGuard>} />
         <Route path="*" element={<Navigate to="/" replace />} />
