@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import type { User } from "@supabase/supabase-js";
 
-export type UserRole = "admin" | "global_admin" | "coordinador" | null;
+export type UserRole = "admin" | "global_admin" | "coordinador" | "viewer" | null;
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
@@ -36,6 +36,7 @@ export function useAuth() {
 
   const isAdmin = role === "admin" || role === "global_admin";
   const isCoord = role === "coordinador";
+  const isViewer = role === "viewer";
 
   async function signIn(email: string, password: string) {
     return supabase.auth.signInWithPassword({ email, password });
@@ -45,5 +46,5 @@ export function useAuth() {
     await supabase.auth.signOut();
   }
 
-  return { user, role, loading, isAdmin, isCoord, signIn, signOut };
+  return { user, role, loading, isAdmin, isCoord, isViewer, signIn, signOut };
 }

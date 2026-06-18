@@ -8,9 +8,11 @@ import { AdminDashboardPage } from "@/pages/admin/AdminDashboardPage";
 import { AdminEventoDetallePage } from "@/pages/admin/AdminEventoDetallePage";
 import { AdminPlantillasPage } from "@/pages/admin/AdminPlantillasPage";
 import { GuidePage } from "@/pages/GuidePage";
+import { ViewerEventosPage } from "@/pages/viewer/ViewerEventosPage";
+import { ViewerEventoDetallePage } from "@/pages/viewer/ViewerEventoDetallePage";
 
-function AuthGuard({ children, require: req }: { children: React.ReactNode; require?: "admin" }) {
-  const { user, loading, isAdmin } = useAuth();
+function AuthGuard({ children, require: req }: { children: React.ReactNode; require?: "admin" | "not-viewer" }) {
+  const { user, loading, isAdmin, isViewer } = useAuth();
   if (loading) return (
     <div className="flex items-center justify-center min-h-screen">
       <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
@@ -18,13 +20,16 @@ function AuthGuard({ children, require: req }: { children: React.ReactNode; requ
   );
   if (!user) return <Navigate to="/login" replace />;
   if (req === "admin" && !isAdmin) return <Navigate to="/" replace />;
+  if (req === "not-viewer" && isViewer) return <Navigate to="/viewer" replace />;
   return <>{children}</>;
 }
 
 function RootRedirect() {
-  const { loading, isAdmin } = useAuth();
+  const { loading, isAdmin, isViewer } = useAuth();
   if (loading) return <div className="flex items-center justify-center min-h-screen"><div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" /></div>;
-  return isAdmin ? <Navigate to="/admin" replace /> : <Navigate to="/eventos" replace />;
+  if (isAdmin) return <Navigate to="/admin" replace />;
+  if (isViewer) return <Navigate to="/viewer" replace />;
+  return <Navigate to="/eventos" replace />;
 }
 
 export default function App() {
@@ -34,8 +39,12 @@ export default function App() {
         <Route path="/login" element={<LoginPage />} />
 
         {/* Coordinador */}
-        <Route path="/eventos" element={<AuthGuard><Layout><CoordEventosPage /></Layout></AuthGuard>} />
-        <Route path="/evento/:id" element={<AuthGuard><Layout><CoordEventoDetallePage /></Layout></AuthGuard>} />
+        <Route path="/eventos" element={<AuthGuard require="not-viewer"><Layout><CoordEventosPage /></Layout></AuthGuard>} />
+        <Route path="/evento/:id" element={<AuthGuard require="not-viewer"><Layout><CoordEventoDetallePage /></Layout></AuthGuard>} />
+
+        {/* Viewer */}
+        <Route path="/viewer" element={<AuthGuard><Layout><ViewerEventosPage /></Layout></AuthGuard>} />
+        <Route path="/viewer/evento/:id" element={<AuthGuard><Layout><ViewerEventoDetallePage /></Layout></AuthGuard>} />
 
         {/* Admin */}
         <Route path="/admin" element={<AuthGuard require="admin"><Layout><AdminDashboardPage /></Layout></AuthGuard>} />

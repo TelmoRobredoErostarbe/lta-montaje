@@ -27,13 +27,11 @@ root.render(
   </StrictMode>,
 );
 
-// Remove splash once React has painted
-requestAnimationFrame(() => {
-  requestAnimationFrame(() => {
-    const splash = document.getElementById('splash');
-    if (splash) {
-      splash.classList.add('fade-out');
-      splash.addEventListener('transitionend', () => splash.remove(), { once: true });
-    }
-  });
-});
+// Remove splash after fill animation completes (1.5s anim + 0.15s delay + buffer)
+setTimeout(() => {
+  const splash = document.getElementById('splash');
+  if (splash) {
+    splash.classList.add('fade-out');
+    splash.addEventListener('transitionend', () => splash.remove(), { once: true });
+  }
+}, 1800);
