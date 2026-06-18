@@ -2,12 +2,12 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { formatHora, formatTs } from "@/lib/utils";
-import { ArrowLeft, CheckCircle2, Clock, Settings, ChevronDown, ChevronUp, X } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Clock, Settings, ChevronDown, ChevronUp, X, Bell } from "lucide-react";
 import { formatoBadgeClass } from "@/lib/formatoColors";
 
 interface Foto { id: string; foto_url: string; mensaje: string | null; created_at: string; coord_nombre: string; }
 interface Checkpoint { id: string; nombre: string; descripcion: string | null; orden: number; hora_recordatorio: string | null; fotos: Foto[]; }
-interface Evento { id: string; codigo: string; ciudad: string; fecha: string; hora_inicio: string | null; formato: string; coord_nombre: string; }
+interface Evento { id: string; codigo: string; ciudad: string; fecha: string; hora_inicio: string | null; formato: string; coord_nombre: string; coordinador_id: string | null; }
 interface Plantilla { id: string; tipo_evento: string; nombre: string; }
 
 export function AdminEventoDetallePage() {
@@ -21,6 +21,7 @@ export function AdminEventoDetallePage() {
   const [lightbox, setLightbox] = useState<string | null>(null);
   const [showPlantillaModal, setShowPlantillaModal] = useState(false);
   const [applyingPlantilla, setApplyingPlantilla] = useState(false);
+  const [sendingPush, setSendingPush] = useState<string | null>(null);
 
   useEffect(() => { if (id) load(); }, [id]);
 
@@ -37,7 +38,7 @@ export function AdminEventoDetallePage() {
     const { data: roleData } = await supabase.from("user_roles").select("nombre").eq("user_id", ev.coordinador_id).maybeSingle();
     const { data: cps } = await supabase.from("montaje_checkpoints").select("id, nombre, descripcion, orden, hora_recordatorio").eq("evento_id", id!).order("orden");
 
-    const eventoData: Evento = { ...ev, coord_nombre: roleData?.nombre || "—" };
+    const eventoData: Evento = { ...ev, coord_nombre: roleData?.nombre || "—", coordinador_id: ev.coordinador_id };
     setEvento(eventoData);
 
     if (!cps || cps.length === 0) { setCheckpoints([]); setLoading(false); return; }
@@ -84,6 +85,33 @@ export function AdminEventoDetallePage() {
     setShowPlantillaModal(false);
     setApplyingPlantilla(false);
     await load();
+  }
+
+  async function sendPush(cp: { id: string; nombre: string }) {
+    if (!evento?.coordinador_id) return;
+    setSendingPush(cp.id);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-push`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${session.access_token}` },
+          body: JSON.stringify({
+            title: `⏰ ${evento.codigo}`,
+            body: `Es momento de: ${cp.nombre}`,
+            url: `/evento/${evento.id}`,
+            user_id: evento.coordinador_id,
+          }),
+        }
+      );
+      const data = await res.json();
+      if (!res.ok) alert(`Error: ${JSON.stringify(data)}`);
+      else alert(`Notificación enviada${data.sent === 0 ? " (sin dispositivos suscritos)" : ""}`);
+    } finally {
+      setSendingPush(null);
+    }
   }
 
   const toggle = (cpId: string) => setExpanded(prev => { const s = new Set(prev); s.has(cpId) ? s.delete(cpId) : s.add(cpId); return s; });
@@ -170,8 +198,18 @@ export function AdminEventoDetallePage() {
                     </p>
                   )}
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-1.5 shrink-0">
                   {done && <span className="text-xs text-green-600 font-semibold">{cp.fotos.length} foto{cp.fotos.length > 1 ? "s" : ""}</span>}
+                  <button
+                    onClick={e => { e.stopPropagation(); sendPush(cp); }}
+                    disabled={sendingPush === cp.id}
+                    title="Enviar notificación ahora"
+                    className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-300 hover:text-slate-500 transition-colors disabled:opacity-40"
+                  >
+                    {sendingPush === cp.id
+                      ? <div className="w-3 h-3 border border-slate-400 border-t-transparent rounded-full animate-spin" />
+                      : <Bell size={13} />}
+                  </button>
                   {open ? <ChevronUp size={14} className="text-slate-400" /> : <ChevronDown size={14} className="text-slate-400" />}
                 </div>
               </button>
