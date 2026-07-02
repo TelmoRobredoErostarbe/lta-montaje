@@ -7,7 +7,14 @@ import { formatoBadgeClass } from "@/lib/formatoColors";
 
 interface Foto { id: string; foto_url: string; mensaje: string | null; created_at: string; coord_nombre: string; }
 interface Checkpoint { id: string; nombre: string; descripcion: string | null; orden: number; hora_recordatorio: string | null; fotos: Foto[]; }
-interface Evento { id: string; codigo: string; ciudad: string; fecha: string; hora_inicio: string | null; formato: string; coord_nombre: string; coordinador_id: string | null; }
+type ReferenciaShow = "inicio" | "show1" | "show2";
+interface Evento { id: string; codigo: string; ciudad: string; fecha: string; hora_inicio: string | null; hora_inicio_show: string | null; hora_segundo_show: string | null; formato: string; coord_nombre: string; coordinador_id: string | null; }
+function getBaseTs(ev: Evento, ref: ReferenciaShow): number {
+  const hora = ref === "show1" ? (ev.hora_inicio_show ?? ev.hora_inicio)
+             : ref === "show2" ? (ev.hora_segundo_show ?? ev.hora_inicio_show ?? ev.hora_inicio)
+             : ev.hora_inicio;
+  return new Date(hora ? `${ev.fecha}T${hora}` : `${ev.fecha}T10:00:00`).getTime();
+}
 interface Plantilla { id: string; tipo_evento: string; nombre: string; }
 
 export function AdminEventoDetallePage() {
@@ -28,7 +35,7 @@ export function AdminEventoDetallePage() {
   async function load() {
     setLoading(true);
     const [{ data: ev }, { data: plantas }] = await Promise.all([
-      supabase.from("eventos").select("id, codigo, ciudad, fecha, hora_inicio, formato, coordinador_id").eq("id", id!).maybeSingle(),
+      supabase.from("eventos").select("id, codigo, ciudad, fecha, hora_inicio, hora_inicio_show, hora_segundo_show, formato, coordinador_id").eq("id", id!).maybeSingle(),
       supabase.from("montaje_plantillas").select("id, tipo_evento, nombre").order("tipo_evento"),
     ]);
 
@@ -69,8 +76,6 @@ export function AdminEventoDetallePage() {
 
     const { data: items } = await supabase.from("montaje_plantilla_items").select("*").eq("plantilla_id", plantillaId).order("orden");
     if (items && items.length > 0) {
-      const horaBase = evento.hora_inicio ? `${evento.fecha}T${evento.hora_inicio}` : `${evento.fecha}T10:00:00`;
-      const baseTs = new Date(horaBase).getTime();
       await supabase.from("montaje_checkpoints").insert(
         items.map((item: any) => ({
           evento_id: evento.id,
@@ -78,7 +83,7 @@ export function AdminEventoDetallePage() {
           nombre: item.nombre,
           descripcion: item.descripcion,
           orden: item.orden,
-          hora_recordatorio: new Date(baseTs + item.offset_minutos * 60000).toISOString(),
+          hora_recordatorio: new Date(getBaseTs(evento, (item.referencia_show ?? "show1") as ReferenciaShow) + item.offset_minutos * 60000).toISOString(),
         }))
       );
     }
