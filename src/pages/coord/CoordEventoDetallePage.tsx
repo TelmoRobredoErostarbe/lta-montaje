@@ -7,8 +7,9 @@ import { formatHora, formatTs } from "@/lib/utils";
 import {
   ArrowLeft, Camera, CheckCircle2, Clock, Upload, X, Settings,
   PackageOpen, PackageCheck, ChevronDown, ChevronUp, Check, Image as ImageIcon,
-  MapPin, CalendarDays,
+  MapPin, CalendarDays, Music2, Wrench,
 } from "lucide-react";
+import { detectExperiencia, buildPasos, CDL_SEGUNDO_SHOW_OFFSETS } from "@/lib/plantillaTemplates";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -38,6 +39,9 @@ interface Evento {
   hora_inicio_show: string | null;
   hora_segundo_show: string | null;
   formato: string;
+  segundo_show: boolean | null;
+  con_desmontaje: boolean | null;
+  segundo_show_opcion: number | null;
 }
 
 function getBaseTs(ev: Evento, ref: ReferenciaShow): number {
@@ -117,6 +121,9 @@ export function CoordEventoDetallePage() {
   const [remisionModal, setRemisionModal] = useState<{ etapa: "salida" | "retorno"; step: number } | null>(null);
   const [savedRem, setSavedRem] = useState<string | null>(null);
   const saveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  // Preguntas dinámicas
+  const [respondiendo, setRespondiendo] = useState<string | null>(null);
+
   // Bodega/venue a nivel de bloque (iguales para todos los ítems de la remisión)
   const [salidaBodegaId, setSalidaBodegaId] = useState<string | null>(null);
   const [salidaVenueId, setSalidaVenueId] = useState<string | null>(null);
@@ -132,7 +139,7 @@ export function CoordEventoDetallePage() {
   async function load() {
     setLoading(true);
     const [{ data: ev }, { data: cps }, { data: plantas }] = await Promise.all([
-      supabase.from("eventos").select("id, codigo, ciudad, fecha, hora_inicio, hora_inicio_show, hora_segundo_show, formato").eq("id", id!).maybeSingle(),
+      supabase.from("eventos").select("id, codigo, ciudad, fecha, hora_inicio, hora_inicio_show, hora_segundo_show, formato, segundo_show, con_desmontaje, segundo_show_opcion").eq("id", id!).maybeSingle(),
       supabase.from("montaje_checkpoints").select("id, nombre, descripcion, orden, hora_recordatorio, valor, plantilla_item_id").eq("evento_id", id!).order("orden"),
       supabase.from("montaje_plantillas").select("id, tipo_evento, nombre").order("tipo_evento"),
     ]);
@@ -268,6 +275,78 @@ export function CoordEventoDetallePage() {
       );
     }
     setShowPlantillaModal(false); setApplyingPlantilla(false);
+    await load();
+  }
+
+  // ── Preguntas dinámicas ────────────────────────────────────────────────────
+
+  async function responderSegundoShow(valor: boolean, opcion?: number) {
+    if (!evento) return;
+    setRespondiendo("segundo_show");
+    const { tipo, cdlVariant } = detectExperiencia(evento.codigo);
+    const update: any = { segundo_show: valor };
+    if (!valor) update.segundo_show_opcion = null;
+    if (valor && opcion !== undefined) update.segundo_show_opcion = opcion;
+    await supabase.from("eventos").update(update).eq("id", evento.id);
+
+    // Para TJR: no hay pregunta de hora, insertar directamente con opcion=0
+    const efectiveOpcion = opcion ?? (tipo !== "CDL" ? 0 : undefined);
+    if (valor && efectiveOpcion !== undefined) {
+      if (tipo) {
+        const horaBase = evento.hora_inicio_show ?? evento.hora_inicio ?? "10:00";
+        const baseMs = new Date(`${evento.fecha}T${horaBase}`).getTime();
+        const maxOrden = checkpoints.reduce((m, c) => Math.max(m, c.orden), 0);
+        const segundoShowPasos = buildPasos(tipo, cdlVariant, true, efectiveOpcion, false)
+          .filter(p => p.tipo === "segundo_show");
+        if (segundoShowPasos.length > 0) {
+          await supabase.from("montaje_checkpoints").insert(
+            segundoShowPasos.map((p, i) => ({
+              evento_id: evento.id,
+              nombre: p.nombre,
+              descripcion: null,
+              orden: maxOrden + i + 1,
+              hora_recordatorio: new Date(baseMs + p.offset_minutos * 60000).toISOString(),
+            }))
+          );
+        }
+      }
+    }
+    setRespondiendo(null);
+    await load();
+  }
+
+  async function responderHoraSegundoShow(opcion: number) {
+    await responderSegundoShow(true, opcion);
+  }
+
+  async function responderDesmontaje(valor: boolean) {
+    if (!evento) return;
+    setRespondiendo("desmontaje");
+    const { tipo, cdlVariant } = detectExperiencia(evento.codigo);
+    await supabase.from("eventos").update({ con_desmontaje: valor }).eq("id", evento.id);
+
+    if (valor) {
+      if (tipo) {
+        const horaBase = evento.hora_inicio_show ?? evento.hora_inicio ?? "10:00";
+        const baseMs = new Date(`${evento.fecha}T${horaBase}`).getTime();
+        const maxOrden = checkpoints.reduce((m, c) => Math.max(m, c.orden), 0);
+        const opcion = evento.segundo_show_opcion ?? 0;
+        const desmontajePasos = buildPasos(tipo, cdlVariant, evento.segundo_show ?? false, opcion, true)
+          .filter(p => p.tipo === "desmontaje");
+        if (desmontajePasos.length > 0) {
+          await supabase.from("montaje_checkpoints").insert(
+            desmontajePasos.map((p, i) => ({
+              evento_id: evento.id,
+              nombre: p.nombre,
+              descripcion: null,
+              orden: maxOrden + i + 1,
+              hora_recordatorio: new Date(baseMs + p.offset_minutos * 60000).toISOString(),
+            }))
+          );
+        }
+      }
+    }
+    setRespondiendo(null);
     await load();
   }
 
@@ -590,6 +669,145 @@ export function CoordEventoDetallePage() {
           </div>
         </div>
       )}
+
+      {/* ── Preguntas dinámicas ─────────────────────────────────────────────── */}
+      {checkpoints.length > 0 && (() => {
+        const { tipo } = detectExperiencia(evento.codigo);
+        if (!tipo) return null;
+        const needsSegundoShow = (tipo === "CDL" || tipo === "TJR") && evento.segundo_show === null;
+        const needsHora = tipo === "CDL" && evento.segundo_show === true && evento.segundo_show_opcion === null;
+        const needsDesmontaje = evento.con_desmontaje === null && (
+          evento.segundo_show !== null || tipo === "TJE" || tipo === "BOL"
+        );
+        if (!needsSegundoShow && !needsHora && !needsDesmontaje) return null;
+
+        const primerShowTime = evento.hora_inicio_show?.slice(0, 5) ?? "18:00";
+        function addMins(t: string, m: number) {
+          const [h, mm] = t.split(":").map(Number);
+          const tot = h * 60 + mm + m;
+          return `${String(Math.floor(((tot % 1440) + 1440) % 1440 / 60)).padStart(2,"0")}:${String(((tot % 1440) + 1440) % 1440 % 60).padStart(2,"0")}`;
+        }
+
+        return (
+          <div className="px-4 pb-4 space-y-3">
+            <p className="text-[11px] font-semibold uppercase tracking-wider mt-1" style={{ color: "hsl(218 11% 65%)" }}>
+              Pendiente de confirmar
+            </p>
+
+            {/* ¿Segundo show? */}
+            {needsSegundoShow && (
+              <div className="card-crm p-4">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 bg-green-50">
+                    <Music2 size={16} className="text-green-600" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-sm" style={{ color: "hsl(222 47% 11%)" }}>¿Tiene segundo show?</p>
+                    <p className="text-xs mt-0.5" style={{ color: "hsl(218 11% 65%)" }}>Se añadirán los pasos del segundo show</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => responderSegundoShow(true)}
+                    disabled={respondiendo === "segundo_show"}
+                    className="py-3 rounded-xl text-sm font-semibold transition-all active:scale-95 disabled:opacity-50"
+                    style={{ background: "#d1fae5", color: "#065f46" }}
+                  >
+                    Sí
+                  </button>
+                  <button
+                    onClick={() => responderSegundoShow(false)}
+                    disabled={respondiendo === "segundo_show"}
+                    className="py-3 rounded-xl text-sm font-semibold transition-all active:scale-95 disabled:opacity-50"
+                    style={{ background: "hsl(220 13% 95%)", color: "hsl(220 9% 46%)" }}
+                  >
+                    No
+                  </button>
+                </div>
+                {respondiendo === "segundo_show" && (
+                  <div className="flex items-center justify-center gap-2 mt-2 text-xs" style={{ color: "hsl(218 11% 65%)" }}>
+                    <div className="w-3 h-3 border-2 border-slate-200 border-t-slate-500 rounded-full animate-spin" /> Guardando…
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ¿A qué hora? (CDL) */}
+            {needsHora && (
+              <div className="card-crm p-4">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 bg-green-50">
+                    <Clock size={16} className="text-green-600" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-sm" style={{ color: "hsl(222 47% 11%)" }}>¿A qué hora es el segundo show?</p>
+                    <p className="text-xs mt-0.5" style={{ color: "hsl(218 11% 65%)" }}>Desde las {primerShowTime} del primer show</p>
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2">
+                  {CDL_SEGUNDO_SHOW_OFFSETS.map((offset, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => responderHoraSegundoShow(idx)}
+                      disabled={respondiendo === "segundo_show"}
+                      className="flex items-center justify-between px-4 py-3 rounded-xl transition-all active:scale-[.98] disabled:opacity-50"
+                      style={{ background: "hsl(220 13% 96%)", border: "1.5px solid hsl(220 13% 88%)" }}
+                    >
+                      <span className="text-xs text-slate-500">+{["2h", "2h 15m", "2h 30m"][idx]}</span>
+                      <span className="text-lg font-bold tabular-nums" style={{ color: "hsl(222 47% 11%)" }}>
+                        {addMins(primerShowTime, offset)}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+                {respondiendo === "segundo_show" && (
+                  <div className="flex items-center justify-center gap-2 mt-2 text-xs" style={{ color: "hsl(218 11% 65%)" }}>
+                    <div className="w-3 h-3 border-2 border-slate-200 border-t-slate-500 rounded-full animate-spin" /> Guardando…
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ¿Desmontaje? */}
+            {needsDesmontaje && (
+              <div className="card-crm p-4">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 bg-red-50">
+                    <Wrench size={16} className="text-red-500" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-sm" style={{ color: "hsl(222 47% 11%)" }}>¿Tiene desmontaje?</p>
+                    <p className="text-xs mt-0.5" style={{ color: "hsl(218 11% 65%)" }}>Se añadirán los pasos de desmontaje, cargue y bodega</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => responderDesmontaje(true)}
+                    disabled={respondiendo === "desmontaje"}
+                    className="py-3 rounded-xl text-sm font-semibold transition-all active:scale-95 disabled:opacity-50"
+                    style={{ background: "#fee2e2", color: "#991b1b" }}
+                  >
+                    Sí
+                  </button>
+                  <button
+                    onClick={() => responderDesmontaje(false)}
+                    disabled={respondiendo === "desmontaje"}
+                    className="py-3 rounded-xl text-sm font-semibold transition-all active:scale-95 disabled:opacity-50"
+                    style={{ background: "hsl(220 13% 95%)", color: "hsl(220 9% 46%)" }}
+                  >
+                    No
+                  </button>
+                </div>
+                {respondiendo === "desmontaje" && (
+                  <div className="flex items-center justify-center gap-2 mt-2 text-xs" style={{ color: "hsl(218 11% 65%)" }}>
+                    <div className="w-3 h-3 border-2 border-slate-200 border-t-slate-500 rounded-full animate-spin" /> Guardando…
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* ── Modal plantilla ──────────────────────────────────────────────────── */}
       {showPlantillaModal && (
