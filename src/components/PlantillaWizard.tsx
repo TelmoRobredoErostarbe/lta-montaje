@@ -184,7 +184,7 @@ export function PlantillaWizard({ open, onClose, evento, onApply }: Props) {
 
         {/* Progress dots */}
         <div className="flex items-center justify-center gap-2 py-3 bg-slate-50 border-b border-slate-100">
-          {allSteps.filter(s => s !== "hora_segundo_show" || (tipo === "CDL" && segundoShow)).map((s, i) => {
+          {allSteps.filter(s => s !== "hora_segundo_show" || (tipo === "CDL" && segundoShow)).map((s) => {
             const realIdx = allSteps.indexOf(s);
             const isActive = realIdx === currentIdx;
             const isDone = realIdx < currentIdx;
@@ -341,11 +341,11 @@ export function PlantillaWizard({ open, onClose, evento, onApply }: Props) {
                 <div className="absolute left-[19px] top-3 bottom-3 w-px bg-slate-100" />
 
                 <div className="space-y-1">
-                  {pasos.map((p) => {
+                  {pasos.map((p, idx) => {
                     const ts = PASO_TIPO_STYLE[p.tipo] ?? PASO_TIPO_STYLE.base;
                     const hora = addMins(primerShowTime, p.offset_minutos);
                     return (
-                      <div key={i} className="flex items-center gap-3 py-1.5">
+                      <div key={idx} className="flex items-center gap-3 py-1.5">
                         {/* Dot */}
                         <div className={`w-[10px] h-[10px] rounded-full shrink-0 ml-[14px] z-10 border-2 border-white shadow-sm ${ts.dot}`} />
                         {/* Content */}
