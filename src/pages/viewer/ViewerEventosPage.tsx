@@ -112,13 +112,13 @@ export function ViewerEventosPage() {
               </div>
             </div>
           )}
-          {e.total === 0 && e.plantilla_nombre === "__error__" && (
+          {e.plantilla_nombre === "__error__" && (
             <p className="text-[10px] text-red-500 font-semibold mt-1">Error al asignar</p>
           )}
-          {e.total === 0 && e.plantilla_nombre !== "__error__" && (
+          {!e.plantilla_nombre && e.total === 0 && (
             <p className="text-[10px] text-slate-300 mt-1">Sin checklist asignado</p>
           )}
-          {e.total > 0 && e.plantilla_nombre && e.plantilla_nombre !== "__error__" && (
+          {e.plantilla_nombre && e.plantilla_nombre !== "__error__" && (
             <p className="text-[10px] text-slate-400 mt-0.5">{e.plantilla_nombre}</p>
           )}
         </div>
