@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import { X, ChevronRight, Check, Sparkles, Truck, Music2, Wrench, Clock } from "lucide-react";
+import { X, ChevronRight, Check, Sparkles, Music2, Wrench, Clock } from "lucide-react";
 import {
   detectExperiencia, buildPasos, CDL_SEGUNDO_SHOW_OFFSETS,
-  type ExperienciaType, type CDLVariant, type PasoPlantilla,
+  type ExperienciaType, type PasoPlantilla,
 } from "@/lib/plantillaTemplates";
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -341,7 +341,7 @@ export function PlantillaWizard({ open, onClose, evento, onApply }: Props) {
                 <div className="absolute left-[19px] top-3 bottom-3 w-px bg-slate-100" />
 
                 <div className="space-y-1">
-                  {pasos.map((p, i) => {
+                  {pasos.map((p) => {
                     const ts = PASO_TIPO_STYLE[p.tipo] ?? PASO_TIPO_STYLE.base;
                     const hora = addMins(primerShowTime, p.offset_minutos);
                     return (
