@@ -681,7 +681,7 @@ export function CoordEventoDetallePage() {
       {/* ── Preguntas dinámicas ─────────────────────────────────────────────── */}
       {checkpoints.length > 0 && (() => {
         const VALID_TIPOS: ExperienciaType[] = ["CDL", "TJR", "TJE", "BOL"];
-        const { tipo: tipoFromCodigo, cdlVariant } = detectExperiencia(evento.codigo);
+        const { tipo: tipoFromCodigo } = detectExperiencia(evento.codigo);
         const tipo: ExperienciaType | null = tipoFromCodigo
           ?? (VALID_TIPOS.includes(evento.formato?.toUpperCase() as ExperienciaType)
               ? evento.formato?.toUpperCase() as ExperienciaType
