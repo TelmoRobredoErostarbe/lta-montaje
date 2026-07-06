@@ -68,8 +68,6 @@ export function PlantillaWizard({ open, onClose, evento, onApply }: Props) {
   const { tipo, cdlVariant } = detectExperiencia(evento.codigo);
 
   const [step, setStep] = useState<Step>("intro");
-  const [dir, setDir] = useState<1 | -1>(1); // 1=adelante -1=atrás
-  const [animating, setAnimating] = useState(false);
   const [segundoShow, setSegundoShow] = useState<boolean | null>(null);
   const [showOption, setShowOption] = useState<number | null>(null);
   const [desmontaje, setDesmontaje] = useState<boolean | null>(null);
@@ -79,7 +77,6 @@ export function PlantillaWizard({ open, onClose, evento, onApply }: Props) {
   useEffect(() => {
     if (open) {
       setStep("intro");
-      setDir(1);
       setSegundoShow(null);
       setShowOption(null);
       setDesmontaje(null);
@@ -92,16 +89,10 @@ export function PlantillaWizard({ open, onClose, evento, onApply }: Props) {
   const primerShowTime = evento.hora_inicio_show?.slice(0, 5) ?? "18:00";
   const c = TIPO_COLORS[tipo];
 
-  // ── navegación animada ───────────────────────────────────────────────────
+  // ── navegación ───────────────────────────────────────────────────────────
 
-  function goTo(next: Step, direction: 1 | -1 = 1) {
-    if (animating) return;
-    setDir(direction);
-    setAnimating(true);
-    setTimeout(() => {
-      setStep(next);
-      setAnimating(false);
-    }, 220);
+  function goTo(next: Step) {
+    setStep(next);
   }
 
   function nextFromIntro() {
@@ -150,11 +141,6 @@ export function PlantillaWizard({ open, onClose, evento, onApply }: Props) {
 
   // ── render ───────────────────────────────────────────────────────────────
 
-  const slideClass = animating
-    ? dir === 1
-      ? "opacity-0 translate-x-6"
-      : "opacity-0 -translate-x-6"
-    : "opacity-100 translate-x-0";
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
@@ -201,7 +187,7 @@ export function PlantillaWizard({ open, onClose, evento, onApply }: Props) {
         </div>
 
         {/* Content */}
-        <div className={`flex-1 overflow-y-auto transition-all duration-220 ease-out ${slideClass}`}>
+        <div className="flex-1 overflow-y-auto">
 
           {/* ── INTRO ─────────────────────────────────────────────── */}
           {step === "intro" && (
@@ -256,7 +242,7 @@ export function PlantillaWizard({ open, onClose, evento, onApply }: Props) {
                 <YesNoCard label="Sí" emoji="🎶" accent="green" onClick={() => nextFromSegundoShow(true)} />
                 <YesNoCard label="No" emoji="✗" accent="slate" onClick={() => nextFromSegundoShow(false)} />
               </div>
-              <BackButton onClick={() => goTo("intro", -1)} />
+              <BackButton onClick={() => goTo("intro")} />
             </div>
           )}
 
@@ -291,7 +277,7 @@ export function PlantillaWizard({ open, onClose, evento, onApply }: Props) {
                   );
                 })}
               </div>
-              <BackButton onClick={() => goTo("segundo_show", -1)} />
+              <BackButton onClick={() => goTo("segundo_show")} />
             </div>
           )}
 
@@ -310,9 +296,9 @@ export function PlantillaWizard({ open, onClose, evento, onApply }: Props) {
                 <YesNoCard label="No" emoji="✗" accent="slate" onClick={() => nextFromDesmontaje(false)} />
               </div>
               <BackButton onClick={() => {
-                if (tipo === "CDL" && segundoShow) goTo("hora_segundo_show", -1);
-                else if (tipo === "CDL" || tipo === "TJR") goTo("segundo_show", -1);
-                else goTo("intro", -1);
+                if (tipo === "CDL" && segundoShow) goTo("hora_segundo_show");
+                else if (tipo === "CDL" || tipo === "TJR") goTo("segundo_show");
+                else goTo("intro");
               }} />
             </div>
           )}
@@ -364,7 +350,7 @@ export function PlantillaWizard({ open, onClose, evento, onApply }: Props) {
 
               {/* Actions */}
               <div className="flex gap-3 pt-2">
-                <BackButton onClick={() => goTo("desmontaje", -1)} />
+                <BackButton onClick={() => goTo("desmontaje")} />
                 <button
                   onClick={handleApply}
                   disabled={applying}
