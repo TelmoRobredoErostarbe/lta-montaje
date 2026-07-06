@@ -4,6 +4,8 @@ import { supabase } from "@/lib/supabase";
 import { formatHora, formatTs } from "@/lib/utils";
 import { ArrowLeft, CheckCircle2, Clock, Settings, ChevronDown, ChevronUp, X, Bell } from "lucide-react";
 import { formatoBadgeClass } from "@/lib/formatoColors";
+import { PlantillaWizard } from "@/components/PlantillaWizard";
+import { detectExperiencia, type PasoPlantilla } from "@/lib/plantillaTemplates";
 
 interface Foto { id: string; foto_url: string; mensaje: string | null; created_at: string; coord_nombre: string; }
 interface Checkpoint { id: string; nombre: string; descripcion: string | null; orden: number; hora_recordatorio: string | null; fotos: Foto[]; }
@@ -27,6 +29,7 @@ export function AdminEventoDetallePage() {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [lightbox, setLightbox] = useState<string | null>(null);
   const [showPlantillaModal, setShowPlantillaModal] = useState(false);
+  const [showWizard, setShowWizard] = useState(false);
   const [applyingPlantilla, setApplyingPlantilla] = useState(false);
   const [sendingPush, setSendingPush] = useState<string | null>(null);
 
@@ -67,6 +70,27 @@ export function AdminEventoDetallePage() {
     setCheckpoints(mapped);
     setExpanded(new Set(mapped.filter(c => c.fotos.length > 0).map(c => c.id)));
     setLoading(false);
+  }
+
+  async function aplicarWizard(pasos: PasoPlantilla[]) {
+    if (!evento) return;
+    await supabase.from("montaje_checkpoints").delete().eq("evento_id", evento.id);
+    if (pasos.length > 0) {
+      const horaBase = evento.hora_inicio_show ?? evento.hora_inicio ?? "10:00";
+      await supabase.from("montaje_checkpoints").insert(
+        pasos.map((p, i) => {
+          const baseMs = new Date(`${evento.fecha}T${horaBase}`).getTime();
+          return {
+            evento_id: evento.id,
+            nombre: p.nombre,
+            descripcion: null,
+            orden: i + 1,
+            hora_recordatorio: new Date(baseMs + p.offset_minutos * 60000).toISOString(),
+          };
+        })
+      );
+    }
+    await load();
   }
 
   async function aplicarPlantilla(plantillaId: string) {
@@ -149,9 +173,13 @@ export function AdminEventoDetallePage() {
           </p>
         </div>
         <button
-          onClick={() => setShowPlantillaModal(true)}
+          onClick={() => {
+            const { tipo } = detectExperiencia(evento.codigo);
+            if (tipo) setShowWizard(true);
+            else setShowPlantillaModal(true);
+          }}
           className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 shrink-0"
-          title="Cambiar plantilla"
+          title="Configurar plantilla"
         >
           <Settings size={16} className="text-slate-500" />
         </button>
@@ -281,6 +309,22 @@ export function AdminEventoDetallePage() {
             )}
           </div>
         </div>
+      )}
+
+      {/* Wizard plantilla */}
+      {evento && (
+        <PlantillaWizard
+          open={showWizard}
+          onClose={() => setShowWizard(false)}
+          evento={{
+            id: evento.id,
+            codigo: evento.codigo,
+            fecha: evento.fecha,
+            hora_inicio_show: evento.hora_inicio_show,
+            hora_segundo_show: evento.hora_segundo_show,
+          }}
+          onApply={aplicarWizard}
+        />
       )}
 
       {/* Lightbox */}
