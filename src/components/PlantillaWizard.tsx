@@ -27,9 +27,9 @@ function formatOffset(mins: number): string {
 
 const TIPO_LABELS: Record<ExperienciaType, string> = {
   CDL: "Candlelight",
-  TJR: "Tour Junior Show",
-  TJE: "Teatro Junior Experience",
-  BOL: "Ball of Light",
+  TJR: "The Jazz Room",
+  TJE: "The Jury Experience",
+  BOL: "Ballet of Lights",
 };
 
 const TIPO_COLORS: Record<ExperienciaType, { bg: string; text: string; border: string; dot: string }> = {
@@ -217,9 +217,9 @@ export function PlantillaWizard({ open, onClose, evento, onApply }: Props) {
                 <p className="text-sm text-slate-500 leading-relaxed">
                   {tipo === "CDL" && cdlVariant === "A" && "Primera fecha de la serie o evento único. Incluye cargue, montaje y tarima."}
                   {tipo === "CDL" && cdlVariant === "B" && "Fecha de continuación en serie. La logística ya está en destino."}
-                  {tipo === "TJR" && "Tour Junior Show con opción de segundo show y desmontaje."}
-                  {tipo === "TJE" && "Teatro Junior Experience. Siempre incluye dos shows."}
-                  {tipo === "BOL" && "Ball of Light. Siempre incluye dos shows."}
+                  {tipo === "TJR" && "The Jazz Room con opción de segundo show y desmontaje."}
+                  {tipo === "TJE" && "The Jury Experience. Siempre incluye dos shows."}
+                  {tipo === "BOL" && "Ballet of Lights. Siempre incluye dos shows."}
                 </p>
               </div>
 
