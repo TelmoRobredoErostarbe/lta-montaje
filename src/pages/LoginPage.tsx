@@ -24,72 +24,83 @@ export function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
-      {/* Top color strip */}
-      <div className="h-1 bg-gradient-to-r from-slate-800 via-slate-600 to-slate-800" />
-
-      <div className="flex-1 flex flex-col items-center justify-center px-6 py-12">
-        {/* Logo */}
-        <div className="mb-10 flex flex-col items-center gap-4">
-          <img
-            src="/lasttour-logo.png"
-            alt="Last Tour América"
-            className="h-16 w-auto object-contain"
-          />
-          <div className="text-center">
-            <h1 className="text-xl font-semibold text-slate-900 tracking-tight">Portal de Montaje</h1>
-            <p className="text-sm text-slate-400 mt-0.5">Control de montaje de eventos</p>
-          </div>
-        </div>
-
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4">
-          <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1.5 uppercase tracking-wide">
-              Correo electrónico
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              required
-              autoComplete="email"
-              className="w-full border border-slate-200 rounded-xl px-4 py-3 text-slate-900 text-sm placeholder-slate-300 focus:outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-100 transition-all"
-              placeholder="tu@email.com"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1.5 uppercase tracking-wide">
-              Contraseña
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              required
-              autoComplete="current-password"
-              className="w-full border border-slate-200 rounded-xl px-4 py-3 text-slate-900 text-sm placeholder-slate-300 focus:outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-100 transition-all"
-              placeholder="••••••••"
-            />
-          </div>
-
-          {error && (
-            <div className="bg-red-50 border border-red-100 rounded-xl px-4 py-3 text-sm text-red-600">
-              {error}
+    <div className="min-h-screen flex flex-col" style={{ background: "hsl(220 13% 95%)" }}>
+      <div className="flex-1 flex flex-col items-center justify-center px-5 py-12">
+        {/* Logo card */}
+        <div className="w-full max-w-sm">
+          <div className="card-crm rounded-2xl p-8 mb-4 animate-fade-in">
+            {/* Logo + title */}
+            <div className="flex flex-col items-center mb-8">
+              <div className="rounded-2xl p-3 mb-5" style={{ background: "hsl(220 13% 95%)" }}>
+                <img src="/lasttour-logo.png" alt="Last Tour" className="h-12 w-auto object-contain" />
+              </div>
+              <h1 className="text-xl font-bold" style={{ color: "hsl(222 47% 11%)" }}>Portal de Montaje</h1>
+              <p className="text-sm mt-1" style={{ color: "hsl(220 9% 46%)" }}>Inicia sesión para continuar</p>
             </div>
-          )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-slate-900 hover:bg-slate-700 disabled:opacity-50 text-white font-semibold py-3.5 rounded-xl text-sm transition-colors mt-2"
-          >
-            {loading ? "Entrando…" : "Entrar"}
-          </button>
-        </form>
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold uppercase tracking-wider" style={{ color: "hsl(220 9% 46%)" }}>
+                  Correo electrónico
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  required
+                  autoComplete="email"
+                  className="w-full rounded-xl px-4 py-3 text-sm transition-all focus:outline-none"
+                  style={{
+                    border: "1px solid hsl(220 13% 91%)",
+                    background: "hsl(220 13% 97%)",
+                    color: "hsl(222 47% 11%)",
+                  }}
+                  placeholder="tu@email.com"
+                />
+              </div>
 
-        <p className="text-xs text-slate-300 mt-10">Last Tour América SAS · Portal interno</p>
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold uppercase tracking-wider" style={{ color: "hsl(220 9% 46%)" }}>
+                  Contraseña
+                </label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  required
+                  autoComplete="current-password"
+                  className="w-full rounded-xl px-4 py-3 text-sm transition-all focus:outline-none"
+                  style={{
+                    border: "1px solid hsl(220 13% 91%)",
+                    background: "hsl(220 13% 97%)",
+                    color: "hsl(222 47% 11%)",
+                  }}
+                  placeholder="••••••••"
+                />
+              </div>
+
+              {error && (
+                <div className="rounded-xl px-4 py-3 text-sm font-medium" style={{ background: "hsl(0 86% 97%)", border: "1px solid hsl(0 96% 89%)", color: "hsl(0 84% 60%)" }}>
+                  {error}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full rounded-xl py-3.5 text-sm font-semibold text-white transition-all mt-2 focus:outline-none"
+                style={{ background: loading ? "hsl(222 47% 30%)" : "hsl(222 47% 11%)", opacity: loading ? 0.7 : 1 }}
+              >
+                {loading ? "Iniciando sesión…" : "Entrar"}
+              </button>
+            </form>
+          </div>
+
+          <p className="text-center text-xs" style={{ color: "hsl(218 11% 65%)" }}>
+            Last Tour América SAS · Portal interno
+          </p>
+        </div>
       </div>
     </div>
   );

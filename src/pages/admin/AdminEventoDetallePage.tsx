@@ -74,21 +74,36 @@ export function AdminEventoDetallePage() {
 
   async function aplicarWizard(pasos: PasoPlantilla[]) {
     if (!evento) return;
-    await supabase.from("montaje_checkpoints").delete().eq("evento_id", evento.id);
-    if (pasos.length > 0) {
-      const horaBase = evento.hora_inicio_show ?? evento.hora_inicio ?? "10:00";
-      await supabase.from("montaje_checkpoints").insert(
-        pasos.map((p, i) => {
-          const baseMs = new Date(`${evento.fecha}T${horaBase}`).getTime();
-          return {
-            evento_id: evento.id,
-            nombre: p.nombre,
-            descripcion: null,
-            orden: i + 1,
-            hora_recordatorio: new Date(baseMs + p.offset_minutos * 60000).toISOString(),
-          };
-        })
-      );
+    const { tipo, cdlVariant } = detectExperiencia(evento.codigo);
+    const nombrePlantilla = tipo
+      ? tipo === "CDL"
+        ? cdlVariant === "A" ? "CDL A" : "CDL B"
+        : tipo === "TJR" ? "The Jazz Room"
+        : tipo === "TJE" ? "The Jury Experience"
+        : "Ballet of Lights"
+      : null;
+
+    try {
+      await supabase.from("montaje_checkpoints").delete().eq("evento_id", evento.id);
+      if (pasos.length > 0) {
+        const horaBase = evento.hora_inicio_show ?? evento.hora_inicio ?? "10:00";
+        const { error } = await supabase.from("montaje_checkpoints").insert(
+          pasos.map((p, i) => {
+            const baseMs = new Date(`${evento.fecha}T${horaBase}`).getTime();
+            return {
+              evento_id: evento.id,
+              nombre: p.nombre,
+              descripcion: null,
+              orden: i + 1,
+              hora_recordatorio: new Date(baseMs + p.offset_minutos * 60000).toISOString(),
+            };
+          })
+        );
+        if (error) throw error;
+      }
+      await supabase.from("eventos").update({ plantilla_nombre: nombrePlantilla }).eq("id", evento.id);
+    } catch {
+      await supabase.from("eventos").update({ plantilla_nombre: "__error__" }).eq("id", evento.id);
     }
     await load();
   }

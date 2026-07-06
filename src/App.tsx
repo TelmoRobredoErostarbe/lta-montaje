@@ -7,6 +7,7 @@ import { CoordEventoDetallePage } from "@/pages/coord/CoordEventoDetallePage";
 import { AdminDashboardPage } from "@/pages/admin/AdminDashboardPage";
 import { AdminEventoDetallePage } from "@/pages/admin/AdminEventoDetallePage";
 import { AdminPlantillasPage } from "@/pages/admin/AdminPlantillasPage";
+import { AdminInventarioPage } from "@/pages/admin/AdminInventarioPage";
 import { GuidePage } from "@/pages/GuidePage";
 import { ViewerEventosPage } from "@/pages/viewer/ViewerEventosPage";
 import { ViewerEventoDetallePage } from "@/pages/viewer/ViewerEventoDetallePage";
@@ -50,6 +51,7 @@ export default function App() {
         <Route path="/admin" element={<AuthGuard require="admin"><Layout><AdminDashboardPage /></Layout></AuthGuard>} />
         <Route path="/admin/evento/:id" element={<AuthGuard require="admin"><Layout><AdminEventoDetallePage /></Layout></AuthGuard>} />
         <Route path="/admin/plantillas" element={<AuthGuard require="admin"><Layout><AdminPlantillasPage /></Layout></AuthGuard>} />
+        <Route path="/admin/inventario" element={<AuthGuard require="admin"><Layout><AdminInventarioPage /></Layout></AuthGuard>} />
 
         {/* Guía (todos) */}
         <Route path="/guia" element={<AuthGuard><Layout><GuidePage /></Layout></AuthGuard>} />

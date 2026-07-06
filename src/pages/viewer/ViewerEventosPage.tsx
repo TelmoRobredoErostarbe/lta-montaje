@@ -12,6 +12,7 @@ interface Evento {
   hora_inicio: string | null;
   formato: string;
   coord_nombre: string;
+  plantilla_nombre: string | null;
   total: number;
   completados: number;
 }
@@ -28,7 +29,7 @@ export function ViewerEventosPage() {
     setLoading(true);
     const { data: evs } = await supabase
       .from("eventos")
-      .select("id, codigo, ciudad, fecha, hora_inicio, formato, coordinador_id")
+      .select("id, codigo, ciudad, fecha, hora_inicio, formato, coordinador_id, plantilla_nombre")
       .not("coordinador_id", "is", null)
       .order("fecha", { ascending: false })
       .limit(100);
@@ -58,6 +59,7 @@ export function ViewerEventosPage() {
     setEventos(evs.map(e => ({
       ...e,
       coord_nombre: roleMap.get(e.coordinador_id) || "—",
+      plantilla_nombre: e.plantilla_nombre ?? null,
       total: byEvento.get(e.id)?.total ?? 0,
       completados: byEvento.get(e.id)?.completados ?? 0,
     })));
@@ -110,7 +112,15 @@ export function ViewerEventosPage() {
               </div>
             </div>
           )}
-          {e.total === 0 && <p className="text-[10px] text-slate-300 mt-1">Sin checklist asignado</p>}
+          {e.total === 0 && e.plantilla_nombre === "__error__" && (
+            <p className="text-[10px] text-red-500 font-semibold mt-1">Error al asignar</p>
+          )}
+          {e.total === 0 && e.plantilla_nombre !== "__error__" && (
+            <p className="text-[10px] text-slate-300 mt-1">Sin checklist asignado</p>
+          )}
+          {e.total > 0 && e.plantilla_nombre && e.plantilla_nombre !== "__error__" && (
+            <p className="text-[10px] text-slate-400 mt-0.5">{e.plantilla_nombre}</p>
+          )}
         </div>
       </button>
     );
