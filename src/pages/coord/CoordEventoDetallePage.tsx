@@ -9,7 +9,7 @@ import {
   PackageOpen, PackageCheck, ChevronDown, ChevronUp, Check, Image as ImageIcon,
   MapPin, CalendarDays, Music2, Wrench,
 } from "lucide-react";
-import { detectExperiencia, buildPasos, CDL_SEGUNDO_SHOW_OFFSETS } from "@/lib/plantillaTemplates";
+import { detectExperiencia, buildPasos, CDL_SEGUNDO_SHOW_OFFSETS, type ExperienciaType } from "@/lib/plantillaTemplates";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -283,7 +283,11 @@ export function CoordEventoDetallePage() {
   async function responderSegundoShow(valor: boolean, opcion?: number) {
     if (!evento) return;
     setRespondiendo("segundo_show");
-    const { tipo, cdlVariant } = detectExperiencia(evento.codigo);
+    const VALID_TIPOS: ExperienciaType[] = ["CDL", "TJR", "TJE", "BOL"];
+    const { tipo: tipoFromCodigo, cdlVariant } = detectExperiencia(evento.codigo);
+    const tipo: ExperienciaType | null = tipoFromCodigo
+      ?? (VALID_TIPOS.includes(evento.formato?.toUpperCase() as ExperienciaType)
+          ? evento.formato?.toUpperCase() as ExperienciaType : null);
     const update: any = { segundo_show: valor };
     if (!valor) update.segundo_show_opcion = null;
     if (valor && opcion !== undefined) update.segundo_show_opcion = opcion;
@@ -322,7 +326,11 @@ export function CoordEventoDetallePage() {
   async function responderDesmontaje(valor: boolean) {
     if (!evento) return;
     setRespondiendo("desmontaje");
-    const { tipo, cdlVariant } = detectExperiencia(evento.codigo);
+    const VALID_TIPOS: ExperienciaType[] = ["CDL", "TJR", "TJE", "BOL"];
+    const { tipo: tipoFromCodigo, cdlVariant } = detectExperiencia(evento.codigo);
+    const tipo: ExperienciaType | null = tipoFromCodigo
+      ?? (VALID_TIPOS.includes(evento.formato?.toUpperCase() as ExperienciaType)
+          ? evento.formato?.toUpperCase() as ExperienciaType : null);
     await supabase.from("eventos").update({ con_desmontaje: valor }).eq("id", evento.id);
 
     if (valor) {
@@ -672,7 +680,12 @@ export function CoordEventoDetallePage() {
 
       {/* ── Preguntas dinámicas ─────────────────────────────────────────────── */}
       {checkpoints.length > 0 && (() => {
-        const { tipo } = detectExperiencia(evento.codigo);
+        const VALID_TIPOS: ExperienciaType[] = ["CDL", "TJR", "TJE", "BOL"];
+        const { tipo: tipoFromCodigo, cdlVariant } = detectExperiencia(evento.codigo);
+        const tipo: ExperienciaType | null = tipoFromCodigo
+          ?? (VALID_TIPOS.includes(evento.formato?.toUpperCase() as ExperienciaType)
+              ? evento.formato?.toUpperCase() as ExperienciaType
+              : null);
         if (!tipo) return null;
         const needsSegundoShow = (tipo === "CDL" || tipo === "TJR") && evento.segundo_show === null;
         const needsHora = tipo === "CDL" && evento.segundo_show === true && evento.segundo_show_opcion === null;
