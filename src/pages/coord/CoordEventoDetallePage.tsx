@@ -42,6 +42,15 @@ interface Evento {
   segundo_show: boolean | null;
   con_desmontaje: boolean | null;
   segundo_show_opcion: number | null;
+  serie: number | null;
+}
+
+function resolveCdlVariant(ev: Evento): CDLVariant {
+  // serie 1 = CDL A (full setup with truck), serie > 1 = CDL B (venue already set)
+  if (ev.serie !== null && ev.serie !== undefined) return ev.serie === 1 ? "A" : "B";
+  // fallback: parse from code (legacy format CDL-DDMMYYYY-SD-CIUDAD)
+  const { cdlVariant } = detectExperiencia(ev.codigo);
+  return cdlVariant;
 }
 
 function getBaseTs(ev: Evento, ref: ReferenciaShow): number {
@@ -140,7 +149,7 @@ export function CoordEventoDetallePage() {
     const scrollY = silent ? window.scrollY : 0;
     if (!silent) setLoading(true);
     const [{ data: ev }, { data: cps }, { data: plantas }] = await Promise.all([
-      supabase.from("eventos").select("id, codigo, ciudad, fecha, hora_inicio, hora_inicio_show, hora_segundo_show, formato, segundo_show, con_desmontaje, segundo_show_opcion").eq("id", id!).maybeSingle(),
+      supabase.from("eventos").select("id, codigo, ciudad, fecha, hora_inicio, hora_inicio_show, hora_segundo_show, formato, segundo_show, con_desmontaje, segundo_show_opcion, serie").eq("id", id!).maybeSingle(),
       supabase.from("montaje_checkpoints").select("id, nombre, descripcion, orden, hora_recordatorio, valor, plantilla_item_id, tipo_bloque").eq("evento_id", id!).order("orden"),
       supabase.from("montaje_plantillas").select("id, tipo_evento, nombre").order("tipo_evento"),
     ]);
@@ -235,21 +244,23 @@ export function CoordEventoDetallePage() {
   async function generarCheckpointsDesde(ev: Evento, plantas: Plantilla[]) {
     let tipo = ev.formato?.toUpperCase();
     if (tipo === "CDL") {
-      const { cdlVariant } = detectExperiencia(ev.codigo);
+      const cdlVariant = resolveCdlVariant(ev);
       tipo = `CDL${cdlVariant}`;
     }
     const plantilla = plantas.find(p => p.tipo_evento === tipo);
     if (!plantilla) return;
     const { data: items } = await supabase.from("montaje_plantilla_items").select("*").eq("plantilla_id", plantilla.id).order("orden");
     if (!items || items.length === 0) return;
-    await supabase.from("montaje_checkpoints").insert(
+    const { error: insErr } = await supabase.from("montaje_checkpoints").insert(
       items.map((item: any) => ({
         evento_id: ev.id, plantilla_item_id: item.id,
         nombre: item.nombre, descripcion: item.descripcion,
         orden: item.orden,
+        tipo_bloque: item.tipo_bloque ?? "foto",
         hora_recordatorio: new Date(getBaseTs(ev, (item.referencia_show ?? "show1") as ReferenciaShow) + item.offset_minutos * 60000).toISOString(),
       }))
     );
+    if (insErr) alert("Error generando checklist: " + insErr.message);
   }
 
   async function cargarFotos(ev: Evento, cps: any[]) {
@@ -290,7 +301,8 @@ export function CoordEventoDetallePage() {
     if (!evento) return;
     setRespondiendo("segundo_show");
     const VALID_TIPOS: ExperienciaType[] = ["CDL", "TJR", "TJE", "BOL"];
-    const { tipo: tipoFromCodigo, cdlVariant } = detectExperiencia(evento.codigo);
+    const { tipo: tipoFromCodigo } = detectExperiencia(evento.codigo);
+    const cdlVariant = resolveCdlVariant(evento);
     const tipo: ExperienciaType | null = tipoFromCodigo
       ?? (VALID_TIPOS.includes(evento.formato?.toUpperCase() as ExperienciaType)
           ? evento.formato?.toUpperCase() as ExperienciaType : null);
@@ -335,7 +347,8 @@ export function CoordEventoDetallePage() {
     if (!evento) return;
     setRespondiendo("desmontaje");
     const VALID_TIPOS: ExperienciaType[] = ["CDL", "TJR", "TJE", "BOL"];
-    const { tipo: tipoFromCodigo, cdlVariant } = detectExperiencia(evento.codigo);
+    const { tipo: tipoFromCodigo } = detectExperiencia(evento.codigo);
+    const cdlVariant = resolveCdlVariant(evento);
     const tipo: ExperienciaType | null = tipoFromCodigo
       ?? (VALID_TIPOS.includes(evento.formato?.toUpperCase() as ExperienciaType)
           ? evento.formato?.toUpperCase() as ExperienciaType : null);

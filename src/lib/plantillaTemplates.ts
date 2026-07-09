@@ -36,6 +36,7 @@ export function detectExperiencia(codigo: string): { tipo: ExperienciaType | nul
 // ── CDL A base (relativo al primer show) ──────────────────────────────────────
 
 const CDL_A_BASE: PasoPlantilla[] = [
+  { nombre: "Salida de bodega",  offset_minutos: -421, referencia_show: "show1", tipo: "base", tipo_bloque: "formulario_salida" },
   { nombre: "Cargue de camión",  offset_minutos: -420, referencia_show: "show1", tipo: "base" },
   { nombre: "Llegada a venue",   offset_minutos: -360, referencia_show: "show1", tipo: "base" },
   { nombre: "Montaje",           offset_minutos: -300, referencia_show: "show1", tipo: "base" },
@@ -134,6 +135,7 @@ const CDL_DESMONTAJE: Record<number, PasoPlantilla[]> = {
 // ── TJR ───────────────────────────────────────────────────────────────────────
 
 const TJR_BASE: PasoPlantilla[] = [
+  { nombre: "Salida de bodega", offset_minutos: -301, referencia_show: "show1", tipo: "base", tipo_bloque: "formulario_salida" },
   { nombre: "Cargue de camión", offset_minutos: -300, referencia_show: "show1", tipo: "base" },
   { nombre: "Llegada a venue",  offset_minutos: -240, referencia_show: "show1", tipo: "base" },
   { nombre: "Prueba de sonido", offset_minutos: -180, referencia_show: "show1", tipo: "base" },
@@ -174,6 +176,7 @@ const TJR_DESMONTAJE_CON: PasoPlantilla[] = [
 // ── TJE (siempre 2 shows, sin opción de segundo show) ────────────────────────
 
 const TJE_FULL: PasoPlantilla[] = [
+  { nombre: "Salida de bodega",  offset_minutos: -541, referencia_show: "show1", tipo: "base", tipo_bloque: "formulario_salida" },
   { nombre: "Cargue de camión",  offset_minutos: -540, referencia_show: "show1", tipo: "base" },
   { nombre: "Llegada a venue",   offset_minutos: -480, referencia_show: "show1", tipo: "base" },
   { nombre: "Montaje técnico",   offset_minutos: -300, referencia_show: "show1", tipo: "base" },
@@ -207,6 +210,7 @@ const TJE_DESMONTAJE: PasoPlantilla[] = [
 // ── BOL (siempre 2 shows, sin opción de segundo show) ────────────────────────
 
 const BOL_FULL: PasoPlantilla[] = [
+  { nombre: "Salida de bodega",  offset_minutos: -541, referencia_show: "show1", tipo: "base", tipo_bloque: "formulario_salida" },
   { nombre: "Cargue de camión",  offset_minutos: -540, referencia_show: "show1", tipo: "base" },
   { nombre: "Llegada a venue",   offset_minutos: -480, referencia_show: "show1", tipo: "base" },
   { nombre: "Montaje técnico",   offset_minutos: -300, referencia_show: "show1", tipo: "base" },
