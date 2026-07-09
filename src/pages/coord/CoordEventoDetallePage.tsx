@@ -309,7 +309,7 @@ export function CoordEventoDetallePage() {
         const segundoShowPasos = buildPasos(tipo, cdlVariant, true, efectiveOpcion, false)
           .filter(p => p.tipo === "segundo_show");
         if (segundoShowPasos.length > 0) {
-          await supabase.from("montaje_checkpoints").insert(
+          const { error: insErr } = await supabase.from("montaje_checkpoints").insert(
             segundoShowPasos.map((p, i) => ({
               evento_id: evento.id,
               nombre: p.nombre,
@@ -319,6 +319,7 @@ export function CoordEventoDetallePage() {
               ...(p.tipo_bloque ? { tipo_bloque: p.tipo_bloque } : {}),
             }))
           );
+          if (insErr) { alert("Error insertando pasos segundo show: " + insErr.message); }
         }
       }
     }
@@ -349,7 +350,7 @@ export function CoordEventoDetallePage() {
         const desmontajePasos = buildPasos(tipo, cdlVariant, evento.segundo_show ?? false, opcion, true)
           .filter(p => p.tipo === "desmontaje");
         if (desmontajePasos.length > 0) {
-          await supabase.from("montaje_checkpoints").insert(
+          const { error: insErr } = await supabase.from("montaje_checkpoints").insert(
             desmontajePasos.map((p, i) => ({
               evento_id: evento.id,
               nombre: p.nombre,
@@ -359,6 +360,7 @@ export function CoordEventoDetallePage() {
               ...(p.tipo_bloque ? { tipo_bloque: p.tipo_bloque } : {}),
             }))
           );
+          if (insErr) { alert("Error insertando pasos desmontaje: " + insErr.message); }
         }
       }
     }
