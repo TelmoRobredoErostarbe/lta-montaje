@@ -136,11 +136,12 @@ export function CoordEventoDetallePage() {
 
   // ── Load ──────────────────────────────────────────────────────────────────
 
-  async function load() {
-    setLoading(true);
+  async function load(silent = false) {
+    const scrollY = silent ? window.scrollY : 0;
+    if (!silent) setLoading(true);
     const [{ data: ev }, { data: cps }, { data: plantas }] = await Promise.all([
       supabase.from("eventos").select("id, codigo, ciudad, fecha, hora_inicio, hora_inicio_show, hora_segundo_show, formato, segundo_show, con_desmontaje, segundo_show_opcion").eq("id", id!).maybeSingle(),
-      supabase.from("montaje_checkpoints").select("id, nombre, descripcion, orden, hora_recordatorio, valor, plantilla_item_id").eq("evento_id", id!).order("orden"),
+      supabase.from("montaje_checkpoints").select("id, nombre, descripcion, orden, hora_recordatorio, valor, plantilla_item_id, tipo_bloque").eq("evento_id", id!).order("orden"),
       supabase.from("montaje_plantillas").select("id, tipo_evento, nombre").order("tipo_evento"),
     ]);
 
@@ -163,7 +164,7 @@ export function CoordEventoDetallePage() {
     }
     const enriched = cpList.map((cp: any) => {
       const pi = itemsMap[cp.plantilla_item_id] || {};
-      return { ...cp, tipo_bloque: pi.tipo_bloque || "foto", opciones: pi.opciones || null, requerido: pi.requerido ?? true };
+      return { ...cp, tipo_bloque: cp.tipo_bloque || pi.tipo_bloque || "foto", opciones: pi.opciones || null, requerido: pi.requerido ?? true };
     });
 
     await cargarFotos(ev, enriched);
@@ -211,6 +212,7 @@ export function CoordEventoDetallePage() {
     }
 
     setLoading(false);
+    if (silent) requestAnimationFrame(() => window.scrollTo(0, scrollY));
   }
 
   async function subirFotoRemision(etapa: "salida" | "retorno", file: File) {
@@ -231,7 +233,11 @@ export function CoordEventoDetallePage() {
   }
 
   async function generarCheckpointsDesde(ev: Evento, plantas: Plantilla[]) {
-    const tipo = ev.formato?.toUpperCase();
+    let tipo = ev.formato?.toUpperCase();
+    if (tipo === "CDL") {
+      const { cdlVariant } = detectExperiencia(ev.codigo);
+      tipo = `CDL${cdlVariant}`;
+    }
     const plantilla = plantas.find(p => p.tipo_evento === tipo);
     if (!plantilla) return;
     const { data: items } = await supabase.from("montaje_plantilla_items").select("*").eq("plantilla_id", plantilla.id).order("orden");
@@ -310,13 +316,14 @@ export function CoordEventoDetallePage() {
               descripcion: null,
               orden: maxOrden + i + 1,
               hora_recordatorio: new Date(baseMs + p.offset_minutos * 60000).toISOString(),
+              ...(p.tipo_bloque ? { tipo_bloque: p.tipo_bloque } : {}),
             }))
           );
         }
       }
     }
     setRespondiendo(null);
-    await load();
+    await load(true);
   }
 
   async function responderHoraSegundoShow(opcion: number) {
@@ -349,13 +356,14 @@ export function CoordEventoDetallePage() {
               descripcion: null,
               orden: maxOrden + i + 1,
               hora_recordatorio: new Date(baseMs + p.offset_minutos * 60000).toISOString(),
+              ...(p.tipo_bloque ? { tipo_bloque: p.tipo_bloque } : {}),
             }))
           );
         }
       }
     }
     setRespondiendo(null);
-    await load();
+    await load(true);
   }
 
   // ── Checkpoint non-photo valor ─────────────────────────────────────────────

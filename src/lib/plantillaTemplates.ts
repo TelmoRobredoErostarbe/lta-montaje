@@ -7,6 +7,7 @@ export interface PasoPlantilla {
   offset_minutos: number;
   referencia_show: "show1";
   tipo: PasoTipo;
+  tipo_bloque?: string;
 }
 
 // ── Detección desde código de evento ──────────────────────────────────────────
@@ -105,24 +106,28 @@ export const CDL_SEGUNDO_SHOW_OPTIONS: PasoPlantilla[][] = [
 // CDL desmontaje (varía según variante de segundo show; -1 = sin segundo show)
 const CDL_DESMONTAJE: Record<number, PasoPlantilla[]> = {
   [-1]: [
-    { nombre: "Desmontaje",      offset_minutos:  90, referencia_show: "show1", tipo: "desmontaje" },
-    { nombre: "Cargue al camión", offset_minutos: 210, referencia_show: "show1", tipo: "desmontaje" },
-    { nombre: "Llegada a bodega", offset_minutos: 270, referencia_show: "show1", tipo: "desmontaje" },
+    { nombre: "Desmontaje",           offset_minutos:  90, referencia_show: "show1", tipo: "desmontaje" },
+    { nombre: "Cargue al camión",     offset_minutos: 210, referencia_show: "show1", tipo: "desmontaje" },
+    { nombre: "Llegada a bodega",     offset_minutos: 270, referencia_show: "show1", tipo: "desmontaje" },
+    { nombre: "Inventario de retorno",offset_minutos: 271, referencia_show: "show1", tipo: "desmontaje", tipo_bloque: "formulario_retorno" },
   ],
   [0]: [
-    { nombre: "Desmontaje",       offset_minutos: 210, referencia_show: "show1", tipo: "desmontaje" },
-    { nombre: "Cargue al camión", offset_minutos: 330, referencia_show: "show1", tipo: "desmontaje" },
-    { nombre: "Llegada a bodega", offset_minutos: 390, referencia_show: "show1", tipo: "desmontaje" },
+    { nombre: "Desmontaje",           offset_minutos: 210, referencia_show: "show1", tipo: "desmontaje" },
+    { nombre: "Cargue al camión",     offset_minutos: 330, referencia_show: "show1", tipo: "desmontaje" },
+    { nombre: "Llegada a bodega",     offset_minutos: 390, referencia_show: "show1", tipo: "desmontaje" },
+    { nombre: "Inventario de retorno",offset_minutos: 391, referencia_show: "show1", tipo: "desmontaje", tipo_bloque: "formulario_retorno" },
   ],
   [1]: [
-    { nombre: "Desmontaje",       offset_minutos: 225, referencia_show: "show1", tipo: "desmontaje" },
-    { nombre: "Cargue al camión", offset_minutos: 345, referencia_show: "show1", tipo: "desmontaje" },
-    { nombre: "Llegada a bodega", offset_minutos: 405, referencia_show: "show1", tipo: "desmontaje" },
+    { nombre: "Desmontaje",           offset_minutos: 225, referencia_show: "show1", tipo: "desmontaje" },
+    { nombre: "Cargue al camión",     offset_minutos: 345, referencia_show: "show1", tipo: "desmontaje" },
+    { nombre: "Llegada a bodega",     offset_minutos: 405, referencia_show: "show1", tipo: "desmontaje" },
+    { nombre: "Inventario de retorno",offset_minutos: 406, referencia_show: "show1", tipo: "desmontaje", tipo_bloque: "formulario_retorno" },
   ],
   [2]: [
-    { nombre: "Desmontaje",       offset_minutos: 240, referencia_show: "show1", tipo: "desmontaje" },
-    { nombre: "Cargue al camión", offset_minutos: 360, referencia_show: "show1", tipo: "desmontaje" },
-    { nombre: "Llegada a bodega", offset_minutos: 420, referencia_show: "show1", tipo: "desmontaje" },
+    { nombre: "Desmontaje",           offset_minutos: 240, referencia_show: "show1", tipo: "desmontaje" },
+    { nombre: "Cargue al camión",     offset_minutos: 360, referencia_show: "show1", tipo: "desmontaje" },
+    { nombre: "Llegada a bodega",     offset_minutos: 420, referencia_show: "show1", tipo: "desmontaje" },
+    { nombre: "Inventario de retorno",offset_minutos: 421, referencia_show: "show1", tipo: "desmontaje", tipo_bloque: "formulario_retorno" },
   ],
 };
 
@@ -153,15 +158,17 @@ const TJR_SEGUNDO_SHOW: PasoPlantilla[] = [
 ];
 
 const TJR_DESMONTAJE_SIN: PasoPlantilla[] = [
-  { nombre: "Desmontaje",       offset_minutos: 105, referencia_show: "show1", tipo: "desmontaje" },
-  { nombre: "Cargue al camión", offset_minutos: 225, referencia_show: "show1", tipo: "desmontaje" },
-  { nombre: "Llegada a bodega", offset_minutos: 285, referencia_show: "show1", tipo: "desmontaje" },
+  { nombre: "Desmontaje",           offset_minutos: 105, referencia_show: "show1", tipo: "desmontaje" },
+  { nombre: "Cargue al camión",     offset_minutos: 225, referencia_show: "show1", tipo: "desmontaje" },
+  { nombre: "Llegada a bodega",     offset_minutos: 285, referencia_show: "show1", tipo: "desmontaje" },
+  { nombre: "Inventario de retorno",offset_minutos: 286, referencia_show: "show1", tipo: "desmontaje", tipo_bloque: "formulario_retorno" },
 ];
 
 const TJR_DESMONTAJE_CON: PasoPlantilla[] = [
-  { nombre: "Desmontaje",       offset_minutos: 300, referencia_show: "show1", tipo: "desmontaje" },
-  { nombre: "Cargue al camión", offset_minutos: 330, referencia_show: "show1", tipo: "desmontaje" },
-  { nombre: "Llegada a bodega", offset_minutos: 390, referencia_show: "show1", tipo: "desmontaje" },
+  { nombre: "Desmontaje",           offset_minutos: 300, referencia_show: "show1", tipo: "desmontaje" },
+  { nombre: "Cargue al camión",     offset_minutos: 330, referencia_show: "show1", tipo: "desmontaje" },
+  { nombre: "Llegada a bodega",     offset_minutos: 390, referencia_show: "show1", tipo: "desmontaje" },
+  { nombre: "Inventario de retorno",offset_minutos: 391, referencia_show: "show1", tipo: "desmontaje", tipo_bloque: "formulario_retorno" },
 ];
 
 // ── TJE (siempre 2 shows, sin opción de segundo show) ────────────────────────

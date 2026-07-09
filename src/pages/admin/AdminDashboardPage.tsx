@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { useNavigate } from "react-router-dom";
 import { MapPin, CalendarDays, CheckCircle2, Search, Bell, ChevronRight, Layers, Activity, CalendarClock, History, PlayCircle } from "lucide-react";
 import { FORMATO_COLOR } from "@/lib/formatoColors";
+import { detectExperiencia } from "@/lib/plantillaTemplates";
 
 interface EventoAdmin {
   id: string;
@@ -36,12 +37,24 @@ function statusOf(e: EventoAdmin, today: string): EventStatus {
 }
 
 const STATUS_META: Record<EventStatus, { label: string; barColor: string; pillBg: string; pillText: string }> = {
-  done:       { label: "Completo",      barColor: "#10b981", pillBg: "#d1fae5",   pillText: "#065f46"  },
-  active:     { label: "En curso",      barColor: "#3b82f6", pillBg: "#dbeafe",   pillText: "#1e40af"  },
-  upcoming:   { label: "Próximo",       barColor: "hsl(218 11% 65%)", pillBg: "hsl(220 13% 91%)", pillText: "hsl(220 9% 46%)" },
-  finalizado: { label: "Finalizado",    barColor: "hsl(218 11% 65%)", pillBg: "hsl(220 13% 95%)", pillText: "hsl(220 9% 46%)" },
-  "no-setup": { label: "Sin checklist", barColor: "hsl(220 13% 88%)", pillBg: "hsl(220 13% 95%)", pillText: "hsl(218 11% 65%)" },
+  done:       { label: "Completo",   barColor: "#10b981", pillBg: "#d1fae5",   pillText: "#065f46"  },
+  active:     { label: "En curso",   barColor: "#3b82f6", pillBg: "#dbeafe",   pillText: "#1e40af"  },
+  upcoming:   { label: "Próximo",    barColor: "hsl(218 11% 65%)", pillBg: "hsl(220 13% 91%)", pillText: "hsl(220 9% 46%)" },
+  finalizado: { label: "Finalizado", barColor: "hsl(218 11% 65%)", pillBg: "hsl(220 13% 95%)", pillText: "hsl(220 9% 46%)" },
+  "no-setup": { label: "Pendiente",  barColor: "hsl(220 13% 88%)", pillBg: "hsl(220 13% 95%)", pillText: "hsl(218 11% 65%)" },
 };
+
+function plantillaNombre(formato: string, codigo: string): string {
+  const up = formato?.toUpperCase();
+  if (up === "CDL") {
+    const { cdlVariant } = detectExperiencia(codigo);
+    return `CDL ${cdlVariant}`;
+  }
+  const NOMBRES: Record<string, string> = {
+    TJR: "The Jazz Room", TJE: "The Jury Experience", BOL: "Ballet of Lights", IGW: "IGW",
+  };
+  return NOMBRES[up] ?? up;
+}
 
 export function AdminDashboardPage() {
   const navigate = useNavigate();
@@ -177,7 +190,7 @@ export function AdminDashboardPage() {
             <div className="flex items-center gap-1.5 mb-1 flex-wrap">
               <span className={`flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-md border ${fc.bg} ${fc.text} ${fc.border}`}>
                 <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: dotColor }} />
-                {e.formato}
+                {e.total === 0 ? plantillaNombre(e.formato, e.codigo) : e.formato}
               </span>
               <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: meta.pillBg, color: meta.pillText }}>
                 {meta.label}
