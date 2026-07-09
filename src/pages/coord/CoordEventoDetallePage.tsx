@@ -610,83 +610,7 @@ export function CoordEventoDetallePage() {
         </div>
       )}
 
-      {/* ── Timeline de pasos ────────────────────────────────────────────────── */}
-      {checkpoints.length > 0 && (
-        <div className="px-4 pb-2">
-          <p className="text-[11px] font-semibold uppercase tracking-wider mb-3" style={{ color: "hsl(218 11% 65%)" }}>
-            Pasos del montaje
-          </p>
-          <div className="relative">
-            {/* Vertical connecting line */}
-            <div
-              className="absolute rounded-full"
-              style={{
-                left: "13px", top: "14px", bottom: "14px", width: "2px",
-                background: "hsl(220 13% 91%)",
-              }}
-            />
-            <div className="space-y-2.5">
-              {checkpoints.map((cp, idx) => {
-                if (cp.tipo_bloque === "formulario_salida") {
-                  const filledCount = inventarioItems.filter(it => {
-                    const r = remSalida[it.id];
-                    return r && r.cantidad !== null && r.estado !== null;
-                  }).length;
-                  const bodegaName = bodegas.find(b => b.id === salidaBodegaId)?.nombre;
-                  const venueName = venues.find(v => v.id === salidaVenueId)?.nombre;
-                  return (
-                    <TimelineRow key={cp.id} done={salidaOk} isFormulario accentColor={accentColor}>
-                      <RemisionCard
-                        etapa="salida"
-                        ok={salidaOk}
-                        filledCount={filledCount}
-                        totalCount={inventarioItems.length}
-                        bodegaName={bodegaName}
-                        venueName={venueName}
-                        fotoUrl={remFotos.salida}
-                        onOpen={() => setRemisionModal({ etapa: "salida", step: 0 })}
-                      />
-                    </TimelineRow>
-                  );
-                }
-                if (cp.tipo_bloque === "formulario_retorno") {
-                  const filledCount = inventarioItems.filter(it => {
-                    const r = remRetorno[it.id];
-                    return r && r.cantidad !== null && r.estado !== null;
-                  }).length;
-                  const bodegaName = bodegas.find(b => b.id === retornoBodegaId)?.nombre;
-                  return (
-                    <TimelineRow key={cp.id} done={retornoOk} isFormulario accentColor={accentColor}>
-                      <RemisionCard
-                        etapa="retorno"
-                        ok={retornoOk}
-                        filledCount={filledCount}
-                        totalCount={inventarioItems.length}
-                        bodegaName={bodegaName}
-                        fotoUrl={remFotos.retorno}
-                        onOpen={() => setRemisionModal({ etapa: "retorno", step: 0 })}
-                      />
-                    </TimelineRow>
-                  );
-                }
-                return (
-                  <TimelineRow key={cp.id} done={completoCheckpoint(cp)} stepNumber={idx + 1} accentColor={accentColor}>
-                    <CheckpointCard
-                      cp={cp}
-                      idx={idx}
-                      onFotoSelect={handleFileSelect}
-                      onValorChange={saveValor}
-                      accentColor={accentColor}
-                    />
-                  </TimelineRow>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Preguntas dinámicas ─────────────────────────────────────────────── */}
+      {/* ── Timeline de pasos + preguntas inline ─────────────────────────────── */}
       {checkpoints.length > 0 && (() => {
         const VALID_TIPOS: ExperienciaType[] = ["CDL", "TJR", "TJE", "BOL"];
         const { tipo: tipoFromCodigo } = detectExperiencia(evento.codigo);
@@ -694,13 +618,11 @@ export function CoordEventoDetallePage() {
           ?? (VALID_TIPOS.includes(evento.formato?.toUpperCase() as ExperienciaType)
               ? evento.formato?.toUpperCase() as ExperienciaType
               : null);
-        if (!tipo) return null;
-        const needsSegundoShow = (tipo === "CDL" || tipo === "TJR") && evento.segundo_show === null;
-        const needsHora = tipo === "CDL" && evento.segundo_show === true && evento.segundo_show_opcion === null;
-        const needsDesmontaje = evento.con_desmontaje === null && (
+        const needsSegundoShow = !!tipo && (tipo === "CDL" || tipo === "TJR") && evento.segundo_show === null;
+        const needsHora = !!tipo && tipo === "CDL" && evento.segundo_show === true && evento.segundo_show_opcion === null;
+        const needsDesmontaje = !!tipo && evento.con_desmontaje === null && (
           evento.segundo_show !== null || tipo === "TJE" || tipo === "BOL"
         );
-        if (!needsSegundoShow && !needsHora && !needsDesmontaje) return null;
 
         const primerShowTime = evento.hora_inicio_show?.slice(0, 5) ?? "18:00";
         function addMins(t: string, m: number) {
@@ -710,122 +632,161 @@ export function CoordEventoDetallePage() {
         }
 
         return (
-          <div className="px-4 pb-4 space-y-3">
-            <p className="text-[11px] font-semibold uppercase tracking-wider mt-1" style={{ color: "hsl(218 11% 65%)" }}>
-              Pendiente de confirmar
+          <div className="px-4 pb-2">
+            <p className="text-[11px] font-semibold uppercase tracking-wider mb-3" style={{ color: "hsl(218 11% 65%)" }}>
+              Pasos del montaje
             </p>
+            <div className="relative">
+              <div
+                className="absolute rounded-full"
+                style={{ left: "13px", top: "14px", bottom: "14px", width: "2px", background: "hsl(220 13% 91%)" }}
+              />
+              <div className="space-y-2.5">
+                {checkpoints.map((cp, idx) => {
+                  if (cp.tipo_bloque === "formulario_salida") {
+                    const filledCount = inventarioItems.filter(it => {
+                      const r = remSalida[it.id];
+                      return r && r.cantidad !== null && r.estado !== null;
+                    }).length;
+                    const bodegaName = bodegas.find(b => b.id === salidaBodegaId)?.nombre;
+                    const venueName = venues.find(v => v.id === salidaVenueId)?.nombre;
+                    return (
+                      <TimelineRow key={cp.id} done={salidaOk} isFormulario accentColor={accentColor}>
+                        <RemisionCard
+                          etapa="salida"
+                          ok={salidaOk}
+                          filledCount={filledCount}
+                          totalCount={inventarioItems.length}
+                          bodegaName={bodegaName}
+                          venueName={venueName}
+                          fotoUrl={remFotos.salida}
+                          onOpen={() => setRemisionModal({ etapa: "salida", step: 0 })}
+                        />
+                      </TimelineRow>
+                    );
+                  }
+                  if (cp.tipo_bloque === "formulario_retorno") {
+                    const filledCount = inventarioItems.filter(it => {
+                      const r = remRetorno[it.id];
+                      return r && r.cantidad !== null && r.estado !== null;
+                    }).length;
+                    const bodegaName = bodegas.find(b => b.id === retornoBodegaId)?.nombre;
+                    return (
+                      <TimelineRow key={cp.id} done={retornoOk} isFormulario accentColor={accentColor}>
+                        <RemisionCard
+                          etapa="retorno"
+                          ok={retornoOk}
+                          filledCount={filledCount}
+                          totalCount={inventarioItems.length}
+                          bodegaName={bodegaName}
+                          fotoUrl={remFotos.retorno}
+                          onOpen={() => setRemisionModal({ etapa: "retorno", step: 0 })}
+                        />
+                      </TimelineRow>
+                    );
+                  }
+                  return (
+                    <TimelineRow key={cp.id} done={completoCheckpoint(cp)} stepNumber={idx + 1} accentColor={accentColor}>
+                      <CheckpointCard
+                        cp={cp}
+                        idx={idx}
+                        onFotoSelect={handleFileSelect}
+                        onValorChange={saveValor}
+                        accentColor={accentColor}
+                      />
+                    </TimelineRow>
+                  );
+                })}
 
-            {/* ¿Segundo show? */}
-            {needsSegundoShow && (
-              <div className="card-crm p-4">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 bg-green-50">
-                    <Music2 size={16} className="text-green-600" />
+                {/* ── Preguntas inline al final del timeline ── */}
+
+                {/* ¿Segundo show? */}
+                {needsSegundoShow && (
+                  <div className="flex gap-3 items-start">
+                    <div className="shrink-0 relative z-10 mt-3.5">
+                      <div className="w-7 h-7 rounded-full flex items-center justify-center border-2" style={{ background: "#f0fdf4", borderColor: "#10b981" }}>
+                        <Music2 size={13} style={{ color: "#10b981" }} />
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0 card-crm p-4">
+                      <p className="font-semibold text-sm mb-0.5" style={{ color: "hsl(222 47% 11%)" }}>¿Tiene segundo show?</p>
+                      <p className="text-xs mb-3" style={{ color: "hsl(218 11% 65%)" }}>Se añadirán los pasos del segundo show</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button onClick={() => responderSegundoShow(true)} disabled={respondiendo === "segundo_show"}
+                          className="py-3 rounded-xl text-sm font-semibold transition-all active:scale-95 disabled:opacity-50"
+                          style={{ background: "#d1fae5", color: "#065f46" }}>Sí</button>
+                        <button onClick={() => responderSegundoShow(false)} disabled={respondiendo === "segundo_show"}
+                          className="py-3 rounded-xl text-sm font-semibold transition-all active:scale-95 disabled:opacity-50"
+                          style={{ background: "hsl(220 13% 95%)", color: "hsl(220 9% 46%)" }}>No</button>
+                      </div>
+                      {respondiendo === "segundo_show" && (
+                        <div className="flex items-center justify-center gap-2 mt-2 text-xs" style={{ color: "hsl(218 11% 65%)" }}>
+                          <div className="w-3 h-3 border-2 border-slate-200 border-t-slate-500 rounded-full animate-spin" /> Guardando…
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-semibold text-sm" style={{ color: "hsl(222 47% 11%)" }}>¿Tiene segundo show?</p>
-                    <p className="text-xs mt-0.5" style={{ color: "hsl(218 11% 65%)" }}>Se añadirán los pasos del segundo show</p>
+                )}
+
+                {/* ¿A qué hora? (CDL) */}
+                {needsHora && (
+                  <div className="flex gap-3 items-start">
+                    <div className="shrink-0 relative z-10 mt-3.5">
+                      <div className="w-7 h-7 rounded-full flex items-center justify-center border-2" style={{ background: "#f0fdf4", borderColor: "#10b981" }}>
+                        <Clock size={13} style={{ color: "#10b981" }} />
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0 card-crm p-4">
+                      <p className="font-semibold text-sm mb-0.5" style={{ color: "hsl(222 47% 11%)" }}>¿A qué hora es el segundo show?</p>
+                      <p className="text-xs mb-3" style={{ color: "hsl(218 11% 65%)" }}>Desde las {primerShowTime} del primer show</p>
+                      <div className="flex flex-col gap-2">
+                        {CDL_SEGUNDO_SHOW_OFFSETS.map((offset, idx) => (
+                          <button key={idx} onClick={() => responderHoraSegundoShow(idx)} disabled={respondiendo === "segundo_show"}
+                            className="flex items-center justify-between px-4 py-3 rounded-xl transition-all active:scale-[.98] disabled:opacity-50"
+                            style={{ background: "hsl(220 13% 96%)", border: "1.5px solid hsl(220 13% 88%)" }}>
+                            <span className="text-xs text-slate-500">+{["2h", "2h 15m", "2h 30m"][idx]}</span>
+                            <span className="text-lg font-bold tabular-nums" style={{ color: "hsl(222 47% 11%)" }}>{addMins(primerShowTime, offset)}</span>
+                          </button>
+                        ))}
+                      </div>
+                      {respondiendo === "segundo_show" && (
+                        <div className="flex items-center justify-center gap-2 mt-2 text-xs" style={{ color: "hsl(218 11% 65%)" }}>
+                          <div className="w-3 h-3 border-2 border-slate-200 border-t-slate-500 rounded-full animate-spin" /> Guardando…
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => responderSegundoShow(true)}
-                    disabled={respondiendo === "segundo_show"}
-                    className="py-3 rounded-xl text-sm font-semibold transition-all active:scale-95 disabled:opacity-50"
-                    style={{ background: "#d1fae5", color: "#065f46" }}
-                  >
-                    Sí
-                  </button>
-                  <button
-                    onClick={() => responderSegundoShow(false)}
-                    disabled={respondiendo === "segundo_show"}
-                    className="py-3 rounded-xl text-sm font-semibold transition-all active:scale-95 disabled:opacity-50"
-                    style={{ background: "hsl(220 13% 95%)", color: "hsl(220 9% 46%)" }}
-                  >
-                    No
-                  </button>
-                </div>
-                {respondiendo === "segundo_show" && (
-                  <div className="flex items-center justify-center gap-2 mt-2 text-xs" style={{ color: "hsl(218 11% 65%)" }}>
-                    <div className="w-3 h-3 border-2 border-slate-200 border-t-slate-500 rounded-full animate-spin" /> Guardando…
+                )}
+
+                {/* ¿Desmontaje? */}
+                {needsDesmontaje && (
+                  <div className="flex gap-3 items-start">
+                    <div className="shrink-0 relative z-10 mt-3.5">
+                      <div className="w-7 h-7 rounded-full flex items-center justify-center border-2" style={{ background: "#fff1f2", borderColor: "#f87171" }}>
+                        <Wrench size={13} style={{ color: "#ef4444" }} />
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0 card-crm p-4">
+                      <p className="font-semibold text-sm mb-0.5" style={{ color: "hsl(222 47% 11%)" }}>¿Tiene desmontaje?</p>
+                      <p className="text-xs mb-3" style={{ color: "hsl(218 11% 65%)" }}>Se añadirán los pasos de desmontaje, cargue y bodega</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button onClick={() => responderDesmontaje(true)} disabled={respondiendo === "desmontaje"}
+                          className="py-3 rounded-xl text-sm font-semibold transition-all active:scale-95 disabled:opacity-50"
+                          style={{ background: "#fee2e2", color: "#991b1b" }}>Sí</button>
+                        <button onClick={() => responderDesmontaje(false)} disabled={respondiendo === "desmontaje"}
+                          className="py-3 rounded-xl text-sm font-semibold transition-all active:scale-95 disabled:opacity-50"
+                          style={{ background: "hsl(220 13% 95%)", color: "hsl(220 9% 46%)" }}>No</button>
+                      </div>
+                      {respondiendo === "desmontaje" && (
+                        <div className="flex items-center justify-center gap-2 mt-2 text-xs" style={{ color: "hsl(218 11% 65%)" }}>
+                          <div className="w-3 h-3 border-2 border-slate-200 border-t-slate-500 rounded-full animate-spin" /> Guardando…
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
-            )}
-
-            {/* ¿A qué hora? (CDL) */}
-            {needsHora && (
-              <div className="card-crm p-4">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 bg-green-50">
-                    <Clock size={16} className="text-green-600" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-sm" style={{ color: "hsl(222 47% 11%)" }}>¿A qué hora es el segundo show?</p>
-                    <p className="text-xs mt-0.5" style={{ color: "hsl(218 11% 65%)" }}>Desde las {primerShowTime} del primer show</p>
-                  </div>
-                </div>
-                <div className="flex flex-col gap-2">
-                  {CDL_SEGUNDO_SHOW_OFFSETS.map((offset, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => responderHoraSegundoShow(idx)}
-                      disabled={respondiendo === "segundo_show"}
-                      className="flex items-center justify-between px-4 py-3 rounded-xl transition-all active:scale-[.98] disabled:opacity-50"
-                      style={{ background: "hsl(220 13% 96%)", border: "1.5px solid hsl(220 13% 88%)" }}
-                    >
-                      <span className="text-xs text-slate-500">+{["2h", "2h 15m", "2h 30m"][idx]}</span>
-                      <span className="text-lg font-bold tabular-nums" style={{ color: "hsl(222 47% 11%)" }}>
-                        {addMins(primerShowTime, offset)}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-                {respondiendo === "segundo_show" && (
-                  <div className="flex items-center justify-center gap-2 mt-2 text-xs" style={{ color: "hsl(218 11% 65%)" }}>
-                    <div className="w-3 h-3 border-2 border-slate-200 border-t-slate-500 rounded-full animate-spin" /> Guardando…
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* ¿Desmontaje? */}
-            {needsDesmontaje && (
-              <div className="card-crm p-4">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 bg-red-50">
-                    <Wrench size={16} className="text-red-500" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-sm" style={{ color: "hsl(222 47% 11%)" }}>¿Tiene desmontaje?</p>
-                    <p className="text-xs mt-0.5" style={{ color: "hsl(218 11% 65%)" }}>Se añadirán los pasos de desmontaje, cargue y bodega</p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => responderDesmontaje(true)}
-                    disabled={respondiendo === "desmontaje"}
-                    className="py-3 rounded-xl text-sm font-semibold transition-all active:scale-95 disabled:opacity-50"
-                    style={{ background: "#fee2e2", color: "#991b1b" }}
-                  >
-                    Sí
-                  </button>
-                  <button
-                    onClick={() => responderDesmontaje(false)}
-                    disabled={respondiendo === "desmontaje"}
-                    className="py-3 rounded-xl text-sm font-semibold transition-all active:scale-95 disabled:opacity-50"
-                    style={{ background: "hsl(220 13% 95%)", color: "hsl(220 9% 46%)" }}
-                  >
-                    No
-                  </button>
-                </div>
-                {respondiendo === "desmontaje" && (
-                  <div className="flex items-center justify-center gap-2 mt-2 text-xs" style={{ color: "hsl(218 11% 65%)" }}>
-                    <div className="w-3 h-3 border-2 border-slate-200 border-t-slate-500 rounded-full animate-spin" /> Guardando…
-                  </div>
-                )}
-              </div>
-            )}
+            </div>
           </div>
         );
       })()}
