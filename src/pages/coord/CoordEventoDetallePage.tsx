@@ -9,7 +9,7 @@ import {
   PackageOpen, PackageCheck, ChevronDown, ChevronUp, Check, Image as ImageIcon,
   MapPin, CalendarDays, Music2, Wrench,
 } from "lucide-react";
-import { detectExperiencia, buildPasos, CDL_SEGUNDO_SHOW_OFFSETS, type ExperienciaType } from "@/lib/plantillaTemplates";
+import { detectExperiencia, buildPasos, CDL_SEGUNDO_SHOW_OFFSETS, type ExperienciaType, type CDLVariant } from "@/lib/plantillaTemplates";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
