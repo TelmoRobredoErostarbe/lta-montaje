@@ -25,6 +25,7 @@ interface Checkpoint {
   opciones: string[] | null;
   requerido: boolean;
   valor: any | null;
+  grupo: string | null;
   fotos: { id: string; foto_url: string; mensaje: string | null; created_at: string }[];
 }
 
@@ -133,6 +134,16 @@ export function CoordEventoDetallePage() {
   // Preguntas dinámicas
   const [respondiendo, setRespondiendo] = useState<string | null>(null);
 
+  // Grupos colapsables
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+  function toggleGroup(grupo: string) {
+    setCollapsedGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(grupo)) next.delete(grupo); else next.add(grupo);
+      return next;
+    });
+  }
+
   // Bodega/venue a nivel de bloque (iguales para todos los ítems de la remisión)
   const [salidaBodegaId, setSalidaBodegaId] = useState<string | null>(null);
   const [salidaVenueId, setSalidaVenueId] = useState<string | null>(null);
@@ -150,7 +161,7 @@ export function CoordEventoDetallePage() {
     if (!silent) setLoading(true);
     const [{ data: ev }, { data: cps }, { data: plantas }] = await Promise.all([
       supabase.from("eventos").select("id, codigo, ciudad, fecha, hora_inicio, hora_inicio_show, hora_segundo_show, formato, segundo_show, con_desmontaje, segundo_show_opcion, serie").eq("id", id!).maybeSingle(),
-      supabase.from("montaje_checkpoints").select("id, nombre, descripcion, orden, hora_recordatorio, valor, plantilla_item_id, tipo_bloque").eq("evento_id", id!).order("orden"),
+      supabase.from("montaje_checkpoints").select("id, nombre, descripcion, orden, hora_recordatorio, valor, plantilla_item_id, tipo_bloque, grupo").eq("evento_id", id!).order("orden"),
       supabase.from("montaje_plantillas").select("id, tipo_evento, nombre").order("tipo_evento"),
     ]);
 
@@ -160,7 +171,7 @@ export function CoordEventoDetallePage() {
     let cpList = cps || [];
     if (cpList.length === 0) {
       await generarCheckpointsDesde(ev, plantas || []);
-      const { data: nuevos } = await supabase.from("montaje_checkpoints").select("id, nombre, descripcion, orden, hora_recordatorio, valor, plantilla_item_id").eq("evento_id", id!).order("orden");
+      const { data: nuevos } = await supabase.from("montaje_checkpoints").select("id, nombre, descripcion, orden, hora_recordatorio, valor, plantilla_item_id, tipo_bloque, grupo").eq("evento_id", id!).order("orden");
       cpList = nuevos || [];
     }
 
@@ -257,6 +268,7 @@ export function CoordEventoDetallePage() {
         nombre: item.nombre, descripcion: item.descripcion,
         orden: item.orden,
         tipo_bloque: item.tipo_bloque ?? "foto",
+        grupo: item.grupo ?? null,
         hora_recordatorio: new Date(getBaseTs(ev, (item.referencia_show ?? "show1") as ReferenciaShow) + item.offset_minutos * 60000).toISOString(),
       }))
     );
@@ -287,6 +299,8 @@ export function CoordEventoDetallePage() {
           evento_id: evento.id, plantilla_item_id: item.id,
           nombre: item.nombre, descripcion: item.descripcion,
           orden: item.orden,
+          tipo_bloque: item.tipo_bloque ?? "foto",
+          grupo: item.grupo ?? null,
           hora_recordatorio: new Date(getBaseTs(evento, (item.referencia_show ?? "show1") as ReferenciaShow) + item.offset_minutos * 60000).toISOString(),
         }))
       );
@@ -325,10 +339,11 @@ export function CoordEventoDetallePage() {
             segundoShowPasos.map((p, i) => ({
               evento_id: evento.id,
               nombre: p.nombre,
-              descripcion: null,
+              descripcion: (p as any).descripcion ?? null,
               orden: maxOrden + i + 1,
               hora_recordatorio: new Date(baseMs + p.offset_minutos * 60000).toISOString(),
-              ...(p.tipo_bloque ? { tipo_bloque: p.tipo_bloque } : {}),
+              tipo_bloque: p.tipo_bloque ?? "foto",
+              grupo: (p as any).grupo ?? null,
             }))
           );
           if (insErr) { alert("Error insertando pasos segundo show: " + insErr.message); }
@@ -367,10 +382,11 @@ export function CoordEventoDetallePage() {
             desmontajePasos.map((p, i) => ({
               evento_id: evento.id,
               nombre: p.nombre,
-              descripcion: null,
+              descripcion: (p as any).descripcion ?? null,
               orden: maxOrden + i + 1,
               hora_recordatorio: new Date(baseMs + p.offset_minutos * 60000).toISOString(),
-              ...(p.tipo_bloque ? { tipo_bloque: p.tipo_bloque } : {}),
+              tipo_bloque: p.tipo_bloque ?? "foto",
+              grupo: (p as any).grupo ?? null,
             }))
           );
           if (insErr) { alert("Error insertando pasos desmontaje: " + insErr.message); }
@@ -646,72 +662,99 @@ export function CoordEventoDetallePage() {
           return `${String(Math.floor(((tot % 1440) + 1440) % 1440 / 60)).padStart(2,"0")}:${String(((tot % 1440) + 1440) % 1440 % 60).padStart(2,"0")}`;
         }
 
+        // Build ordered group list preserving insertion order
+        const groupsMap: { key: string; items: Checkpoint[] }[] = [];
+        const ungroupedCps: Checkpoint[] = [];
+        for (const cp of checkpoints) {
+          if (!cp.grupo) { ungroupedCps.push(cp); continue; }
+          const g = groupsMap.find(x => x.key === cp.grupo);
+          if (g) g.items.push(cp); else groupsMap.push({ key: cp.grupo, items: [cp] });
+        }
+        const hasGroups = groupsMap.length > 0;
+
+        function renderCp(cp: Checkpoint, globalIdx: number) {
+          if (cp.tipo_bloque === "formulario_salida") {
+            const filledCount = inventarioItems.filter(it => { const r = remSalida[it.id]; return r && r.cantidad !== null && r.estado !== null; }).length;
+            const bodegaName = bodegas.find(b => b.id === salidaBodegaId)?.nombre;
+            const venueName = venues.find(v => v.id === salidaVenueId)?.nombre;
+            return (
+              <TimelineRow key={cp.id} done={salidaOk} isFormulario accentColor={accentColor}>
+                <RemisionCard etapa="salida" ok={salidaOk} filledCount={filledCount} totalCount={inventarioItems.length} bodegaName={bodegaName} venueName={venueName} fotoUrl={remFotos.salida} onOpen={() => setRemisionModal({ etapa: "salida", step: 0 })} />
+              </TimelineRow>
+            );
+          }
+          if (cp.tipo_bloque === "formulario_retorno") {
+            const filledCount = inventarioItems.filter(it => { const r = remRetorno[it.id]; return r && r.cantidad !== null && r.estado !== null; }).length;
+            const bodegaName = bodegas.find(b => b.id === retornoBodegaId)?.nombre;
+            return (
+              <TimelineRow key={cp.id} done={retornoOk} isFormulario accentColor={accentColor}>
+                <RemisionCard etapa="retorno" ok={retornoOk} filledCount={filledCount} totalCount={inventarioItems.length} bodegaName={bodegaName} fotoUrl={remFotos.retorno} onOpen={() => setRemisionModal({ etapa: "retorno", step: 0 })} />
+              </TimelineRow>
+            );
+          }
+          return (
+            <TimelineRow key={cp.id} done={completoCheckpoint(cp)} stepNumber={globalIdx + 1} accentColor={accentColor}>
+              <CheckpointCard cp={cp} idx={globalIdx} onFotoSelect={handleFileSelect} onValorChange={saveValor} accentColor={accentColor} />
+            </TimelineRow>
+          );
+        }
+
+        let gIdx = 0;
+
         return (
           <div className="px-4 pb-2">
             <p className="text-[11px] font-semibold uppercase tracking-wider mb-3" style={{ color: "hsl(218 11% 65%)" }}>
               Pasos del montaje
             </p>
-            <div className="relative">
-              <div
-                className="absolute rounded-full"
-                style={{ left: "13px", top: "14px", bottom: "14px", width: "2px", background: "hsl(220 13% 91%)" }}
-              />
-              <div className="space-y-2.5">
-                {checkpoints.map((cp, idx) => {
-                  if (cp.tipo_bloque === "formulario_salida") {
-                    const filledCount = inventarioItems.filter(it => {
-                      const r = remSalida[it.id];
-                      return r && r.cantidad !== null && r.estado !== null;
-                    }).length;
-                    const bodegaName = bodegas.find(b => b.id === salidaBodegaId)?.nombre;
-                    const venueName = venues.find(v => v.id === salidaVenueId)?.nombre;
-                    return (
-                      <TimelineRow key={cp.id} done={salidaOk} isFormulario accentColor={accentColor}>
-                        <RemisionCard
-                          etapa="salida"
-                          ok={salidaOk}
-                          filledCount={filledCount}
-                          totalCount={inventarioItems.length}
-                          bodegaName={bodegaName}
-                          venueName={venueName}
-                          fotoUrl={remFotos.salida}
-                          onOpen={() => setRemisionModal({ etapa: "salida", step: 0 })}
-                        />
-                      </TimelineRow>
-                    );
-                  }
-                  if (cp.tipo_bloque === "formulario_retorno") {
-                    const filledCount = inventarioItems.filter(it => {
-                      const r = remRetorno[it.id];
-                      return r && r.cantidad !== null && r.estado !== null;
-                    }).length;
-                    const bodegaName = bodegas.find(b => b.id === retornoBodegaId)?.nombre;
-                    return (
-                      <TimelineRow key={cp.id} done={retornoOk} isFormulario accentColor={accentColor}>
-                        <RemisionCard
-                          etapa="retorno"
-                          ok={retornoOk}
-                          filledCount={filledCount}
-                          totalCount={inventarioItems.length}
-                          bodegaName={bodegaName}
-                          fotoUrl={remFotos.retorno}
-                          onOpen={() => setRemisionModal({ etapa: "retorno", step: 0 })}
-                        />
-                      </TimelineRow>
-                    );
-                  }
-                  return (
-                    <TimelineRow key={cp.id} done={completoCheckpoint(cp)} stepNumber={idx + 1} accentColor={accentColor}>
-                      <CheckpointCard
-                        cp={cp}
-                        idx={idx}
-                        onFotoSelect={handleFileSelect}
-                        onValorChange={saveValor}
-                        accentColor={accentColor}
-                      />
-                    </TimelineRow>
-                  );
-                })}
+            <div className={hasGroups ? "space-y-1" : "relative"}>
+              {!hasGroups && (
+                <div className="absolute rounded-full" style={{ left: "13px", top: "14px", bottom: "14px", width: "2px", background: "hsl(220 13% 91%)" }} />
+              )}
+              <div className={hasGroups ? "" : "space-y-2.5"}>
+                {hasGroups ? (
+                  <>
+                    {groupsMap.map(({ key: grupo, items }) => {
+                      const isCollapsed = collapsedGroups.has(grupo);
+                      const doneInGroup = items.filter(cp => {
+                        if (cp.tipo_bloque === "formulario_salida") return salidaOk;
+                        if (cp.tipo_bloque === "formulario_retorno") return retornoOk;
+                        return completoCheckpoint(cp);
+                      }).length;
+                      const allGroupDone = doneInGroup === items.length && items.length > 0;
+                      const startIdx = gIdx;
+                      gIdx += items.length;
+                      return (
+                        <div key={grupo}>
+                          <button
+                            onClick={() => toggleGroup(grupo)}
+                            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl mb-1 transition-colors text-left"
+                            style={{ background: allGroupDone ? "hsl(142 71% 45% / 0.08)" : "hsl(220 13% 96%)", border: `1.5px solid ${allGroupDone ? "hsl(142 71% 45% / 0.2)" : "hsl(220 13% 91%)"}` }}
+                          >
+                            <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-white"
+                              style={{ background: allGroupDone ? "#10b981" : accentColor }}>
+                              {allGroupDone ? <Check size={10} /> : <span className="text-[8px] font-bold">{doneInGroup}</span>}
+                            </div>
+                            <span className="flex-1 text-xs font-semibold truncate" style={{ color: "hsl(222 47% 11%)" }}>{grupo}</span>
+                            <span className="text-[10px] tabular-nums shrink-0" style={{ color: "hsl(218 11% 65%)" }}>{doneInGroup}/{items.length}</span>
+                            {isCollapsed
+                              ? <ChevronDown size={14} style={{ color: "hsl(218 11% 65%)" }} />
+                              : <ChevronUp size={14} style={{ color: "hsl(218 11% 65%)" }} />}
+                          </button>
+                          {!isCollapsed && (
+                            <div className="relative ml-3 pl-3 mb-2" style={{ borderLeft: "2px solid hsl(220 13% 91%)" }}>
+                              <div className="space-y-2 py-1">
+                                {items.map((cp, i) => renderCp(cp, startIdx + i))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                    {ungroupedCps.map(cp => renderCp(cp, gIdx++))}
+                  </>
+                ) : (
+                  checkpoints.map((cp, idx) => renderCp(cp, idx))
+                )}
 
                 {/* ── Preguntas inline al final del timeline ── */}
 

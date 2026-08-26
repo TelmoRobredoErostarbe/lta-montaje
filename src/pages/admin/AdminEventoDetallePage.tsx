@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { formatHora, formatTs } from "@/lib/utils";
-import { ArrowLeft, CheckCircle2, Clock, Settings, ChevronDown, ChevronUp, X, Bell } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Clock, Settings, ChevronDown, ChevronUp, X, Bell, Eye } from "lucide-react";
 import { formatoBadgeClass } from "@/lib/formatoColors";
 import { PlantillaWizard } from "@/components/PlantillaWizard";
 import { detectExperiencia, type PasoPlantilla } from "@/lib/plantillaTemplates";
@@ -122,6 +122,8 @@ export function AdminEventoDetallePage() {
           nombre: item.nombre,
           descripcion: item.descripcion,
           orden: item.orden,
+          tipo_bloque: item.tipo_bloque ?? "foto",
+          grupo: item.grupo ?? null,
           hora_recordatorio: new Date(getBaseTs(evento, (item.referencia_show ?? "show1") as ReferenciaShow) + item.offset_minutos * 60000).toISOString(),
         }))
       );
@@ -187,6 +189,13 @@ export function AdminEventoDetallePage() {
             {evento.hora_inicio ? ` · ${formatHora(evento.hora_inicio)}` : ""} · {evento.coord_nombre}
           </p>
         </div>
+        <button
+          onClick={() => navigate(`/evento/${evento.id}`)}
+          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 shrink-0"
+          title="Vista coordinador"
+        >
+          <Eye size={16} className="text-slate-500" />
+        </button>
         <button
           onClick={() => {
             const { tipo } = detectExperiencia(evento.codigo);
