@@ -256,7 +256,7 @@ export function AdminEventoDetallePage() {
           return (
             <div key={cp.id} className={`bg-white rounded-2xl border overflow-hidden ${done ? "border-green-200" : "border-slate-100"}`}>
               <button onClick={() => toggle(cp.id)} className="w-full text-left p-4 flex items-center gap-3">
-                <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-xs font-bold ${done ? "bg-green-500 text-white" : "bg-slate-100 text-slate-500"}`}>
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-xs font-bold ${done ? "bg-green-500 text-white" : "bg-slate-100 text-slate-700"}`}>
                   {done ? <CheckCircle2 size={15} /> : idx + 1}
                 </div>
                 <div className="flex-1 min-w-0">
