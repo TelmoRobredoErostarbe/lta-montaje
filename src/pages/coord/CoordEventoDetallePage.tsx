@@ -323,7 +323,12 @@ export function CoordEventoDetallePage() {
     const update: any = { segundo_show: valor };
     if (!valor) update.segundo_show_opcion = null;
     if (valor && opcion !== undefined) update.segundo_show_opcion = opcion;
-    await supabase.from("eventos").update(update).eq("id", evento.id);
+    const { error: updErr } = await supabase.from("eventos").update(update).eq("id", evento.id);
+    if (updErr) {
+      alert("Error al guardar: " + updErr.message);
+      setRespondiendo(null);
+      return;
+    }
 
     // Para TJR: no hay pregunta de hora, insertar directamente con opcion=0
     const efectiveOpcion = opcion ?? (tipo !== "CDL" ? 0 : undefined);
@@ -367,7 +372,12 @@ export function CoordEventoDetallePage() {
     const tipo: ExperienciaType | null = tipoFromCodigo
       ?? (VALID_TIPOS.includes(evento.formato?.toUpperCase() as ExperienciaType)
           ? evento.formato?.toUpperCase() as ExperienciaType : null);
-    await supabase.from("eventos").update({ con_desmontaje: valor }).eq("id", evento.id);
+    const { error: updDesmErr } = await supabase.from("eventos").update({ con_desmontaje: valor }).eq("id", evento.id);
+    if (updDesmErr) {
+      alert("Error al guardar: " + updDesmErr.message);
+      setRespondiendo(null);
+      return;
+    }
 
     if (valor) {
       if (tipo) {
