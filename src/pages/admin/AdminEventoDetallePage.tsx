@@ -8,9 +8,10 @@ import { PlantillaWizard } from "@/components/PlantillaWizard";
 import { detectExperiencia, type PasoPlantilla } from "@/lib/plantillaTemplates";
 
 interface Foto { id: string; foto_url: string; mensaje: string | null; created_at: string; coord_nombre: string; }
-interface Checkpoint { id: string; nombre: string; descripcion: string | null; orden: number; hora_recordatorio: string | null; tipo_bloque: string | null; valor: any; fotos: Foto[]; }
+interface Checkpoint { id: string; nombre: string; descripcion: string | null; orden: number; hora_recordatorio: string | null; tipo_bloque: string | null; valor: any; no_aplica: boolean | null; notas: string | null; updated_by: string | null; fotos: Foto[]; }
 
 function cpDone(cp: Checkpoint): boolean {
+  if (cp.no_aplica) return true;
   if (cp.tipo_bloque === "foto" || !cp.tipo_bloque) return cp.fotos.length > 0;
   return cp.valor !== null && cp.valor !== undefined;
 }
@@ -51,7 +52,7 @@ export function AdminEventoDetallePage() {
     setPlantillas(plantas || []);
 
     const { data: roleData } = await supabase.from("user_roles").select("nombre").eq("user_id", ev.coordinador_id).maybeSingle();
-    const { data: cps } = await supabase.from("montaje_checkpoints").select("id, nombre, descripcion, orden, hora_recordatorio, tipo_bloque, valor").eq("evento_id", id!).order("orden");
+    const { data: cps } = await supabase.from("montaje_checkpoints").select("id, nombre, descripcion, orden, hora_recordatorio, tipo_bloque, valor, no_aplica, notas, updated_by").eq("evento_id", id!).order("orden");
 
     const eventoData: Evento = { ...ev, coord_nombre: roleData?.nombre || "—", coordinador_id: ev.coordinador_id };
     setEvento(eventoData);
@@ -246,12 +247,15 @@ export function AdminEventoDetallePage() {
           const done = cpDone(cp);
           const open = expanded.has(cp.id);
           const isFoto = cp.tipo_bloque === "foto" || !cp.tipo_bloque;
-          const valorLabel = !isFoto && done
-            ? cp.tipo_bloque === "checkbox" ? "✓ marcado"
-            : cp.valor?.value !== undefined ? String(cp.valor.value)
-            : cp.valor?.checked !== undefined ? (cp.valor.checked ? "✓ marcado" : null)
-            : cp.valor?.notes ? cp.valor.notes.slice(0, 40)
-            : JSON.stringify(cp.valor)
+          const valorLabel = done
+            ? cp.no_aplica ? "No aplica"
+            : !isFoto ? (
+              cp.tipo_bloque === "checkbox" ? "✓ marcado"
+              : cp.valor?.value !== undefined ? String(cp.valor.value)
+              : cp.valor?.checked !== undefined ? (cp.valor.checked ? "✓ marcado" : null)
+              : cp.valor?.notes ? cp.valor.notes.slice(0, 40)
+              : JSON.stringify(cp.valor)
+            ) : null
             : null;
           return (
             <div key={cp.id} className={`bg-white rounded-2xl border overflow-hidden ${done ? "border-green-200" : "border-slate-100"}`}>
@@ -269,8 +273,9 @@ export function AdminEventoDetallePage() {
                   )}
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
-                  {done && isFoto && <span className="text-xs text-green-600 font-semibold">{cp.fotos.length} foto{cp.fotos.length > 1 ? "s" : ""}</span>}
-                  {done && !isFoto && valorLabel && <span className="text-xs text-green-600 font-semibold">{valorLabel}</span>}
+                  {done && cp.no_aplica && <span className="text-xs text-amber-600 font-semibold">No aplica</span>}
+                  {done && !cp.no_aplica && isFoto && <span className="text-xs text-green-600 font-semibold">{cp.fotos.length} foto{cp.fotos.length > 1 ? "s" : ""}</span>}
+                  {done && !cp.no_aplica && !isFoto && valorLabel && <span className="text-xs text-green-600 font-semibold">{valorLabel}</span>}
                   <button
                     onClick={e => { e.stopPropagation(); sendPush(cp); }}
                     disabled={sendingPush === cp.id}
@@ -287,14 +292,20 @@ export function AdminEventoDetallePage() {
 
               {open && (
                 <div className="px-4 pb-4 space-y-3">
-                  {!isFoto && valorLabel && (
+                  {cp.no_aplica && (
+                    <p className="text-xs font-semibold bg-amber-50 text-amber-800 rounded-lg px-3 py-2">No aplica</p>
+                  )}
+                  {!cp.no_aplica && !isFoto && valorLabel && (
                     <p className="text-xs text-green-700 bg-green-50 rounded-lg px-3 py-2">{valorLabel}</p>
                   )}
-                  {isFoto && cp.fotos.length === 0 && (
+                  {!cp.no_aplica && isFoto && cp.fotos.length === 0 && (
                     <p className="text-xs text-slate-400 text-center py-4">Aún no hay fotos para este paso</p>
                   )}
-                  {!isFoto && !valorLabel && (
+                  {!cp.no_aplica && !isFoto && !valorLabel && (
                     <p className="text-xs text-slate-400 text-center py-4">Sin completar</p>
+                  )}
+                  {cp.notas && (
+                    <p className="text-xs text-slate-600 bg-slate-50 rounded-lg px-3 py-2 italic">📝 {cp.notas}</p>
                   )}
                   {cp.fotos.map(f => (
                     <div key={f.id} className="rounded-xl overflow-hidden border border-slate-100">

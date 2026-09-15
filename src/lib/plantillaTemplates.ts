@@ -42,7 +42,7 @@ const CDL_A_BASE: PasoPlantilla[] = [
   { nombre: "Cargue de bodega",               grupo: "Cargue de camión",       offset_minutos: -420, referencia_show: "show1", tipo: "base", tipo_bloque: "foto" },
   { nombre: "Descargue Venue",                grupo: "Cargue de camión",       offset_minutos: -360, referencia_show: "show1", tipo: "base", tipo_bloque: "foto" },
   { nombre: "Llegada Staff",                  grupo: "Llegada a venue",        offset_minutos: -360, referencia_show: "show1", tipo: "base", tipo_bloque: "checkbox" },
-  { nombre: "Inicio Montaje",                 grupo: "Montaje",                offset_minutos: -300, referencia_show: "show1", tipo: "base", tipo_bloque: "foto" },
+  { nombre: "Inicio Montaje",                 grupo: "Montaje",                offset_minutos: -330, referencia_show: "show1", tipo: "base", tipo_bloque: "foto" },
   { nombre: "Avance Montaje",                 grupo: "Montaje",                offset_minutos: -240, referencia_show: "show1", tipo: "base", tipo_bloque: "foto" },
   { nombre: "Tarima lista",                   grupo: "Montaje",                offset_minutos: -180, referencia_show: "show1", tipo: "base", tipo_bloque: "foto" },
   { nombre: "Lobby Listo",                    grupo: "Montaje",                offset_minutos: -120, referencia_show: "show1", tipo: "base", tipo_bloque: "foto" },

@@ -26,6 +26,9 @@ interface Checkpoint {
   requerido: boolean;
   valor: any | null;
   grupo: string | null;
+  no_aplica: boolean;
+  notas: string | null;
+  updated_by: string | null;
   fotos: { id: string; foto_url: string; mensaje: string | null; created_at: string }[];
 }
 
@@ -86,6 +89,7 @@ interface Venue { id: string; nombre: string; }
 const ESTADOS = ["Bueno", "Regular", "Dañado", "Incompleto"];
 
 function completoCheckpoint(cp: Checkpoint): boolean {
+  if (cp.no_aplica) return true;
   if (!cp.requerido) return true;
   switch (cp.tipo_bloque) {
     case "foto": return cp.fotos.length > 0;
@@ -161,7 +165,7 @@ export function CoordEventoDetallePage() {
     if (!silent) setLoading(true);
     const [{ data: ev }, { data: cps }, { data: plantas }] = await Promise.all([
       supabase.from("eventos").select("id, codigo, ciudad, fecha, hora_inicio, hora_inicio_show, hora_segundo_show, formato, segundo_show, con_desmontaje, segundo_show_opcion, serie").eq("id", id!).maybeSingle(),
-      supabase.from("montaje_checkpoints").select("id, nombre, descripcion, orden, hora_recordatorio, valor, plantilla_item_id, tipo_bloque, grupo").eq("evento_id", id!).order("orden"),
+      supabase.from("montaje_checkpoints").select("id, nombre, descripcion, orden, hora_recordatorio, valor, plantilla_item_id, tipo_bloque, grupo, no_aplica, notas, updated_by").eq("evento_id", id!).order("orden"),
       supabase.from("montaje_plantillas").select("id, tipo_evento, nombre").order("tipo_evento"),
     ]);
 
@@ -171,7 +175,7 @@ export function CoordEventoDetallePage() {
     let cpList = cps || [];
     if (cpList.length === 0) {
       await generarCheckpointsDesde(ev, plantas || []);
-      const { data: nuevos } = await supabase.from("montaje_checkpoints").select("id, nombre, descripcion, orden, hora_recordatorio, valor, plantilla_item_id, tipo_bloque, grupo").eq("evento_id", id!).order("orden");
+      const { data: nuevos } = await supabase.from("montaje_checkpoints").select("id, nombre, descripcion, orden, hora_recordatorio, valor, plantilla_item_id, tipo_bloque, grupo, no_aplica, notas, updated_by").eq("evento_id", id!).order("orden");
       cpList = nuevos || [];
     }
 
@@ -410,8 +414,13 @@ export function CoordEventoDetallePage() {
   // ── Checkpoint non-photo valor ─────────────────────────────────────────────
 
   async function saveValor(cpId: string, valor: any) {
-    await supabase.from("montaje_checkpoints").update({ valor }).eq("id", cpId);
+    await supabase.from("montaje_checkpoints").update({ valor, updated_by: user?.id ?? null }).eq("id", cpId);
     setCheckpoints(prev => prev.map(c => c.id === cpId ? { ...c, valor } : c));
+  }
+
+  async function saveCheckpointMeta(cpId: string, updates: { no_aplica?: boolean; notas?: string }) {
+    await supabase.from("montaje_checkpoints").update({ ...updates, updated_by: user?.id ?? null }).eq("id", cpId);
+    setCheckpoints(prev => prev.map(c => c.id === cpId ? { ...c, ...updates } : c));
   }
 
   // ── Foto upload ────────────────────────────────────────────────────────────
@@ -704,7 +713,7 @@ export function CoordEventoDetallePage() {
           }
           return (
             <TimelineRow key={cp.id} done={completoCheckpoint(cp)} stepNumber={globalIdx + 1} accentColor={accentColor}>
-              <CheckpointCard cp={cp} idx={globalIdx} onFotoSelect={handleFileSelect} onValorChange={saveValor} accentColor={accentColor} />
+              <CheckpointCard cp={cp} idx={globalIdx} onFotoSelect={handleFileSelect} onValorChange={saveValor} onMetaChange={saveCheckpointMeta} accentColor={accentColor} />
             </TimelineRow>
           );
         }
@@ -981,20 +990,37 @@ function TimelineRow({ done, stepNumber, isFormulario, children }: {
 
 // ─── CheckpointCard ──────────────────────────────────────────────────────────
 
-function CheckpointCard({ cp, onFotoSelect, onValorChange }: {
+function CheckpointCard({ cp, onFotoSelect, onValorChange, onMetaChange }: {
   cp: Checkpoint;
   idx?: number;
   onFotoSelect: (cpId: string, file: File) => void;
   onValorChange: (cpId: string, valor: any) => void;
+  onMetaChange: (cpId: string, updates: { no_aplica?: boolean; notas?: string }) => void;
   accentColor?: string;
 }) {
   const done = completoCheckpoint(cp);
   const [open, setOpen] = useState(!done);
   const [localVal, setLocalVal] = useState<any>(cp.valor ?? (cp.tipo_bloque === "checkbox" ? false : ""));
+  const [localNoAplica, setLocalNoAplica] = useState(cp.no_aplica ?? false);
+  const [localNotas, setLocalNotas] = useState(cp.notas ?? "");
+  const notasTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   function handleChange(val: any) {
     setLocalVal(val);
     onValorChange(cp.id, val);
+  }
+
+  function toggleNoAplica() {
+    const next = !localNoAplica;
+    setLocalNoAplica(next);
+    onMetaChange(cp.id, { no_aplica: next });
+    if (next) setOpen(false);
+  }
+
+  function handleNotasChange(val: string) {
+    setLocalNotas(val);
+    if (notasTimer.current) clearTimeout(notasTimer.current);
+    notasTimer.current = setTimeout(() => onMetaChange(cp.id, { notas: val }), 600);
   }
 
   return (
@@ -1030,7 +1056,14 @@ function CheckpointCard({ cp, onFotoSelect, onValorChange }: {
             <p className="text-xs pt-3" style={{ color: "hsl(220 9% 46%)" }}>{cp.descripcion}</p>
           )}
 
-          {cp.tipo_bloque === "foto" && (
+          {localNoAplica && (
+            <div className="flex items-center gap-2 rounded-xl px-3 py-2.5" style={{ background: "#fef3c7", border: "1px solid #fde68a" }}>
+              <span className="text-xs font-semibold" style={{ color: "#92400e" }}>No aplica</span>
+              <button type="button" onClick={toggleNoAplica} className="ml-auto text-[10px] underline" style={{ color: "#b45309" }}>Deshacer</button>
+            </div>
+          )}
+
+          {!localNoAplica && cp.tipo_bloque === "foto" && (
             <>
               {cp.fotos.length > 0 && (
                 <div className="space-y-2 pt-3">
@@ -1043,7 +1076,7 @@ function CheckpointCard({ cp, onFotoSelect, onValorChange }: {
                   ))}
                 </div>
               )}
-              <input type="file" accept="image/*" capture="environment" className="hidden" id={`file-${cp.id}`}
+              <input type="file" accept="image/*" className="hidden" id={`file-${cp.id}`}
                 onChange={e => { const f = e.target.files?.[0]; if (f) onFotoSelect(cp.id, f); e.target.value = ""; }} />
               <label htmlFor={`file-${cp.id}`}
                 className="flex items-center justify-center gap-2 w-full py-3 rounded-xl text-sm font-semibold cursor-pointer transition-colors focus:outline-none"
@@ -1056,7 +1089,7 @@ function CheckpointCard({ cp, onFotoSelect, onValorChange }: {
             </>
           )}
 
-          {cp.tipo_bloque === "texto" && (
+          {!localNoAplica && cp.tipo_bloque === "texto" && (
             <textarea
               value={localVal}
               onChange={e => handleChange(e.target.value)}
@@ -1067,7 +1100,7 @@ function CheckpointCard({ cp, onFotoSelect, onValorChange }: {
             />
           )}
 
-          {cp.tipo_bloque === "numero" && (
+          {!localNoAplica && cp.tipo_bloque === "numero" && (
             <input
               type="number"
               value={localVal}
@@ -1078,7 +1111,7 @@ function CheckpointCard({ cp, onFotoSelect, onValorChange }: {
             />
           )}
 
-          {cp.tipo_bloque === "select" && (
+          {!localNoAplica && cp.tipo_bloque === "select" && (
             <select
               value={localVal}
               onChange={e => handleChange(e.target.value)}
@@ -1090,7 +1123,7 @@ function CheckpointCard({ cp, onFotoSelect, onValorChange }: {
             </select>
           )}
 
-          {cp.tipo_bloque === "checkbox" && (
+          {!localNoAplica && cp.tipo_bloque === "checkbox" && (
             <label
               className="flex items-center gap-3 cursor-pointer rounded-xl px-4 py-3.5 transition-colors"
               style={{ background: localVal ? "#f0fdf4" : "hsl(220 13% 97%)", border: `1px solid ${localVal ? "#a7f3d0" : "hsl(220 13% 91%)"}` }}
@@ -1106,6 +1139,31 @@ function CheckpointCard({ cp, onFotoSelect, onValorChange }: {
                 {localVal ? "Confirmado ✓" : "Marcar como completado"}
               </span>
             </label>
+          )}
+
+          {/* No aplica + Notas (available on all non-formulario checkpoints) */}
+          {cp.tipo_bloque !== "formulario_salida" && cp.tipo_bloque !== "formulario_retorno" && (
+            <div className="space-y-2 pt-1">
+              <button
+                type="button"
+                onClick={toggleNoAplica}
+                className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
+                style={localNoAplica
+                  ? { background: "#fef3c7", color: "#92400e", border: "1px solid #fde68a" }
+                  : { background: "hsl(220 13% 96%)", color: "hsl(220 9% 46%)", border: "1px solid hsl(220 13% 88%)" }
+                }
+              >
+                {localNoAplica ? <><Check size={11} /> No aplica (activo)</> : "No aplica"}
+              </button>
+              <textarea
+                value={localNotas}
+                onChange={e => handleNotasChange(e.target.value)}
+                placeholder="Notas / hora real…"
+                rows={2}
+                className="w-full rounded-xl px-3 py-2 text-xs resize-none focus:outline-none transition-colors"
+                style={{ border: "1px solid hsl(220 13% 91%)", background: "hsl(220 13% 97%)", color: "hsl(222 47% 11%)" }}
+              />
+            </div>
           )}
         </div>
       )}
@@ -1320,7 +1378,7 @@ function RemisionModal({ etapa, step, items, rems, bodegas, venues, blockBodegaI
                     }
                   </label>
                 )}
-                <input id={`rem-foto-modal-${etapa}`} type="file" accept="image/*" capture="environment" className="hidden"
+                <input id={`rem-foto-modal-${etapa}`} type="file" accept="image/*" className="hidden"
                   onChange={e => { const f = e.target.files?.[0]; if (f) onFotoSelect(f); e.target.value = ""; }} />
               </div>
             </div>
