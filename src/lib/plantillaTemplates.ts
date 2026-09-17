@@ -220,6 +220,29 @@ const IGW_BASE: PasoPlantilla[] = [
   { nombre: "Fin de show",        grupo: "Salida público",    offset_minutos:   90, referencia_show: "show1", tipo: "base", tipo_bloque: "foto" },
 ];
 
+const IGW_SEGUNDO_SHOW: PasoPlantilla[] = [
+  { nombre: "Apertura puertas 2°", grupo: "2° Show — apertura",  offset_minutos: 135, referencia_show: "show1", tipo: "segundo_show", tipo_bloque: "foto" },
+  { nombre: "Primer llamado 2°",   grupo: "2° Show — llamados",  offset_minutos: 165, referencia_show: "show1", tipo: "segundo_show", tipo_bloque: "numero", descripcion: "Número de válidos al primer llamado" },
+  { nombre: "Segundo llamado 2°",  grupo: "2° Show — llamados",  offset_minutos: 175, referencia_show: "show1", tipo: "segundo_show", tipo_bloque: "numero", descripcion: "Número de válidos al segundo llamado" },
+  { nombre: "Tercer llamado 2°",   grupo: "2° Show — llamados",  offset_minutos: 185, referencia_show: "show1", tipo: "segundo_show", tipo_bloque: "numero", descripcion: "Número de válidos al tercer llamado" },
+  { nombre: "Cierre puertas 2°",   grupo: "2° Show — inicio",    offset_minutos: 190, referencia_show: "show1", tipo: "segundo_show", tipo_bloque: "foto" },
+  { nombre: "Fin de show 2°",      grupo: "2° Show — salida",    offset_minutos: 270, referencia_show: "show1", tipo: "segundo_show", tipo_bloque: "foto" },
+];
+
+const IGW_DESMONTAJE_SIN: PasoPlantilla[] = [
+  { nombre: "Desmontaje",            grupo: "Desmontaje", offset_minutos: 105, referencia_show: "show1", tipo: "desmontaje", tipo_bloque: "foto" },
+  { nombre: "Cargue al camión",      grupo: "Desmontaje", offset_minutos: 225, referencia_show: "show1", tipo: "desmontaje", tipo_bloque: "foto" },
+  { nombre: "Llegada a bodega",      grupo: "Desmontaje", offset_minutos: 285, referencia_show: "show1", tipo: "desmontaje", tipo_bloque: "foto" },
+  { nombre: "Inventario de retorno", grupo: "Desmontaje", offset_minutos: 286, referencia_show: "show1", tipo: "desmontaje", tipo_bloque: "formulario_retorno" },
+];
+
+const IGW_DESMONTAJE_CON: PasoPlantilla[] = [
+  { nombre: "Desmontaje",            grupo: "Desmontaje", offset_minutos: 300, referencia_show: "show1", tipo: "desmontaje", tipo_bloque: "foto" },
+  { nombre: "Cargue al camión",      grupo: "Desmontaje", offset_minutos: 330, referencia_show: "show1", tipo: "desmontaje", tipo_bloque: "foto" },
+  { nombre: "Llegada a bodega",      grupo: "Desmontaje", offset_minutos: 390, referencia_show: "show1", tipo: "desmontaje", tipo_bloque: "foto" },
+  { nombre: "Inventario de retorno", grupo: "Desmontaje", offset_minutos: 391, referencia_show: "show1", tipo: "desmontaje", tipo_bloque: "formulario_retorno" },
+];
+
 // ── TJE (siempre 2 shows, sin opción de segundo show) ────────────────────────
 
 const TJE_FULL: PasoPlantilla[] = [
@@ -315,6 +338,8 @@ export function buildPasos(
     if (desmontaje) ps.push(...BOL_DESMONTAJE);
   } else if (tipo === "IGW") {
     ps.push(...IGW_BASE);
+    if (segundoShow) ps.push(...IGW_SEGUNDO_SHOW);
+    if (desmontaje) ps.push(...(segundoShow ? IGW_DESMONTAJE_CON : IGW_DESMONTAJE_SIN));
   }
 
   return ps.map((p, i) => ({ ...p, orden: i + 1 })) as (PasoPlantilla & { orden: number })[];
