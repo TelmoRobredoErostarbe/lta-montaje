@@ -61,7 +61,7 @@ function getBaseTs(ev: Evento, ref: ReferenciaShow): number {
   const hora = ref === "show1" ? (ev.hora_inicio_show ?? ev.hora_inicio)
              : ref === "show2" ? (ev.hora_segundo_show ?? ev.hora_inicio_show ?? ev.hora_inicio)
              : ev.hora_inicio;
-  return new Date(hora ? `${ev.fecha}T${hora}` : `${ev.fecha}T10:00:00`).getTime();
+  return new Date(hora ? `${ev.fecha}T${hora}-05:00` : `${ev.fecha}T10:00:00-05:00`).getTime();
 }
 
 interface Plantilla { id: string; tipo_evento: string; nombre: string; }
@@ -339,7 +339,7 @@ export function CoordEventoDetallePage() {
     if (valor && efectiveOpcion !== undefined) {
       if (tipo) {
         const horaBase = evento.hora_inicio_show ?? evento.hora_inicio ?? "10:00";
-        const baseMs = new Date(`${evento.fecha}T${horaBase}`).getTime();
+        const baseMs = new Date(`${evento.fecha}T${horaBase}-05:00`).getTime();
         const maxOrden = checkpoints.reduce((m, c) => Math.max(m, c.orden), 0);
         const segundoShowPasos = buildPasos(tipo, cdlVariant, true, efectiveOpcion, false)
           .filter(p => p.tipo === "segundo_show");
@@ -386,7 +386,7 @@ export function CoordEventoDetallePage() {
     if (valor) {
       if (tipo) {
         const horaBase = evento.hora_inicio_show ?? evento.hora_inicio ?? "10:00";
-        const baseMs = new Date(`${evento.fecha}T${horaBase}`).getTime();
+        const baseMs = new Date(`${evento.fecha}T${horaBase}-05:00`).getTime();
         const maxOrden = checkpoints.reduce((m, c) => Math.max(m, c.orden), 0);
         const opcion = evento.segundo_show_opcion ?? 0;
         const desmontajePasos = buildPasos(tipo, cdlVariant, evento.segundo_show ?? false, opcion, true)

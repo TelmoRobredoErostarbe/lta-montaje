@@ -21,7 +21,7 @@ function getBaseTs(ev: Evento, ref: ReferenciaShow): number {
   const hora = ref === "show1" ? (ev.hora_inicio_show ?? ev.hora_inicio)
              : ref === "show2" ? (ev.hora_segundo_show ?? ev.hora_inicio_show ?? ev.hora_inicio)
              : ev.hora_inicio;
-  return new Date(hora ? `${ev.fecha}T${hora}` : `${ev.fecha}T10:00:00`).getTime();
+  return new Date(hora ? `${ev.fecha}T${hora}-05:00` : `${ev.fecha}T10:00:00-05:00`).getTime();
 }
 interface Plantilla { id: string; tipo_evento: string; nombre: string; }
 
@@ -130,7 +130,7 @@ export function AdminEventoDetallePage() {
         const horaBase = evento.hora_inicio_show ?? evento.hora_inicio ?? "10:00";
         const { error } = await supabase.from("montaje_checkpoints").insert(
           pasos.map((p, i) => {
-            const baseMs = new Date(`${evento.fecha}T${horaBase}`).getTime();
+            const baseMs = new Date(`${evento.fecha}T${horaBase}-05:00`).getTime();
             return {
               evento_id: evento.id,
               nombre: p.nombre,

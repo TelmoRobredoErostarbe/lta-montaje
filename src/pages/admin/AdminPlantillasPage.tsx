@@ -131,7 +131,7 @@ export function AdminPlantillasPage() {
     const hora = ref === "show1" ? (ev.hora_inicio_show ?? ev.hora_inicio)
                : ref === "show2" ? (ev.hora_segundo_show ?? ev.hora_inicio_show ?? ev.hora_inicio)
                : ev.hora_inicio;
-    return new Date(hora ? `${ev.fecha}T${hora}` : `${ev.fecha}T10:00:00`).getTime();
+    return new Date(hora ? `${ev.fecha}T${hora}-05:00` : `${ev.fecha}T10:00:00-05:00`).getTime();
   }
 
   async function updateReferencia(itemId: string, ref: ReferenciaShow) {
