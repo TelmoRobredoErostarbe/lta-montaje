@@ -30,6 +30,7 @@ const TIPO_LABELS: Record<ExperienciaType, string> = {
   TJR: "The Jazz Room",
   TJE: "The Jury Experience",
   BOL: "Ballet of Lights",
+  IGW: "Impact Global Weekend",
 };
 
 const TIPO_COLORS: Record<ExperienciaType, { bg: string; text: string; border: string; dot: string }> = {
@@ -37,6 +38,7 @@ const TIPO_COLORS: Record<ExperienciaType, { bg: string; text: string; border: s
   TJR:  { bg: "bg-violet-50",  text: "text-violet-700", border: "border-violet-200",dot: "bg-violet-400" },
   TJE:  { bg: "bg-blue-50",    text: "text-blue-700",   border: "border-blue-200",  dot: "bg-blue-400"   },
   BOL:  { bg: "bg-emerald-50", text: "text-emerald-700",border: "border-emerald-200",dot:"bg-emerald-400"},
+  IGW:  { bg: "bg-rose-50",    text: "text-rose-700",   border: "border-rose-200",  dot: "bg-rose-400"   },
 };
 
 const PASO_TIPO_STYLE: Record<string, { dot: string; labelColor: string }> = {
@@ -142,6 +144,7 @@ export function PlantillaWizard({ open, onClose, evento, onApply }: Props) {
                   {tipo === "TJR" && "Se aplicarán los pasos base. El coordinador indicará si hay segundo show y desmontaje."}
                   {tipo === "TJE" && "Se aplicará la plantilla completa con ambos shows. El coordinador confirmará el desmontaje."}
                   {tipo === "BOL" && "Se aplicará la plantilla completa con ambos shows. El coordinador confirmará el desmontaje."}
+                  {tipo === "IGW" && "Se aplicarán los pasos base. El coordinador indicará si hay segundo show y desmontaje."}
                 </p>
               </div>
 
@@ -161,7 +164,7 @@ export function PlantillaWizard({ open, onClose, evento, onApply }: Props) {
               <button
                 onClick={() => setStep("preview")}
                 className="w-full py-3.5 rounded-2xl font-semibold text-white text-sm flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg"
-                style={{ background: tipo === "CDL" ? "#d97706" : tipo === "TJR" ? "#7c3aed" : tipo === "TJE" ? "#2563eb" : "#059669" }}
+                style={{ background: tipo === "CDL" ? "#d97706" : tipo === "TJR" ? "#7c3aed" : tipo === "TJE" ? "#2563eb" : tipo === "IGW" ? "#e11d48" : "#059669" }}
               >
                 Ver pasos <ChevronRight size={16} />
               </button>

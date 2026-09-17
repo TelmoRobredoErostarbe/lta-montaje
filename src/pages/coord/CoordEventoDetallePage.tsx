@@ -318,7 +318,7 @@ export function CoordEventoDetallePage() {
   async function responderSegundoShow(valor: boolean, opcion?: number) {
     if (!evento) return;
     setRespondiendo("segundo_show");
-    const VALID_TIPOS: ExperienciaType[] = ["CDL", "TJR", "TJE", "BOL"];
+    const VALID_TIPOS: ExperienciaType[] = ["CDL", "TJR", "TJE", "BOL", "IGW"];
     const { tipo: tipoFromCodigo } = detectExperiencia(evento.codigo);
     const cdlVariant = resolveCdlVariant(evento);
     const tipo: ExperienciaType | null = tipoFromCodigo
@@ -370,7 +370,7 @@ export function CoordEventoDetallePage() {
   async function responderDesmontaje(valor: boolean) {
     if (!evento) return;
     setRespondiendo("desmontaje");
-    const VALID_TIPOS: ExperienciaType[] = ["CDL", "TJR", "TJE", "BOL"];
+    const VALID_TIPOS: ExperienciaType[] = ["CDL", "TJR", "TJE", "BOL", "IGW"];
     const { tipo: tipoFromCodigo } = detectExperiencia(evento.codigo);
     const cdlVariant = resolveCdlVariant(evento);
     const tipo: ExperienciaType | null = tipoFromCodigo
@@ -662,16 +662,16 @@ export function CoordEventoDetallePage() {
 
       {/* ── Timeline de pasos + preguntas inline ─────────────────────────────── */}
       {checkpoints.length > 0 && (() => {
-        const VALID_TIPOS: ExperienciaType[] = ["CDL", "TJR", "TJE", "BOL"];
+        const VALID_TIPOS: ExperienciaType[] = ["CDL", "TJR", "TJE", "BOL", "IGW"];
         const { tipo: tipoFromCodigo } = detectExperiencia(evento.codigo);
         const tipo: ExperienciaType | null = tipoFromCodigo
           ?? (VALID_TIPOS.includes(evento.formato?.toUpperCase() as ExperienciaType)
               ? evento.formato?.toUpperCase() as ExperienciaType
               : null);
-        const needsSegundoShow = !!tipo && (tipo === "CDL" || tipo === "TJR") && evento.segundo_show === null;
+        const needsSegundoShow = !!tipo && (tipo === "CDL" || tipo === "TJR" || tipo === "IGW") && evento.segundo_show === null;
         const needsHora = !!tipo && tipo === "CDL" && evento.segundo_show === true && evento.segundo_show_opcion === null;
         const needsDesmontaje = !!tipo && evento.con_desmontaje === null && (
-          evento.segundo_show !== null || tipo === "TJE" || tipo === "BOL"
+          evento.segundo_show !== null || tipo === "TJE" || tipo === "BOL" || tipo === "IGW"
         );
 
         const primerShowTime = evento.hora_inicio_show?.slice(0, 5) ?? "18:00";
