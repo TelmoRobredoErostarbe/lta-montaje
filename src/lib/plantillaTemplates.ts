@@ -1,4 +1,4 @@
-export type ExperienciaType = "CDL" | "TJR" | "TJE" | "BOL";
+export type ExperienciaType = "CDL" | "TJR" | "TJE" | "BOL" | "IGW";
 export type CDLVariant = "A" | "B";
 export type PasoTipo = "base" | "segundo_show" | "desmontaje";
 
@@ -21,6 +21,7 @@ export function detectExperiencia(codigo: string): { tipo: ExperienciaType | nul
   else if (up.startsWith("TJR")) tipo = "TJR";
   else if (up.startsWith("TJE")) tipo = "TJE";
   else if (up.startsWith("BOL")) tipo = "BOL";
+  else if (up.startsWith("IGW")) tipo = "IGW";
 
   // CDL-DDMMYYYY-SD-CIUDAD  →  SD last digit = día en serie (1 = CDL A, >1 = CDL B)
   let cdlVariant: CDLVariant = "A";
@@ -198,6 +199,27 @@ const TJR_DESMONTAJE_CON: PasoPlantilla[] = [
   { nombre: "Inventario de retorno",offset_minutos: 391, referencia_show: "show1", tipo: "desmontaje", tipo_bloque: "formulario_retorno" },
 ];
 
+// ── IGW ───────────────────────────────────────────────────────────────────────
+
+const IGW_BASE: PasoPlantilla[] = [
+  { nombre: "Salida de bodega",   grupo: "Cargue de camión",  offset_minutos: -301, referencia_show: "show1", tipo: "base", tipo_bloque: "formulario_salida" },
+  { nombre: "Cargue de camión",   grupo: "Cargue de camión",  offset_minutos: -300, referencia_show: "show1", tipo: "base", tipo_bloque: "foto" },
+  { nombre: "Llegada a venue",    grupo: "Llegada a venue",   offset_minutos: -240, referencia_show: "show1", tipo: "base", tipo_bloque: "foto" },
+  { nombre: "Llegada Staff",      grupo: "Llegada a venue",   offset_minutos: -240, referencia_show: "show1", tipo: "base", tipo_bloque: "checkbox" },
+  { nombre: "Ensayo de meseros",  grupo: "Ensayo de meseros", offset_minutos: -180, referencia_show: "show1", tipo: "base", tipo_bloque: "foto" },
+  { nombre: "Pendones y zonas",   grupo: "Recinto listo",     offset_minutos:  -60, referencia_show: "show1", tipo: "base", tipo_bloque: "foto" },
+  { nombre: "Selfie staff listo", grupo: "Recinto listo",     offset_minutos:  -60, referencia_show: "show1", tipo: "base", tipo_bloque: "foto" },
+  { nombre: "Catering staff",     grupo: "Recinto listo",     offset_minutos:  -60, referencia_show: "show1", tipo: "base", tipo_bloque: "foto" },
+  { nombre: "QR actualizado",     grupo: "Recinto listo",     offset_minutos:  -60, referencia_show: "show1", tipo: "base", tipo_bloque: "checkbox" },
+  { nombre: "Apertura puertas",   grupo: "Apertura puertas",  offset_minutos:  -45, referencia_show: "show1", tipo: "base", tipo_bloque: "foto" },
+  { nombre: "Primer llamado",     grupo: "Primer llamado",    offset_minutos:  -15, referencia_show: "show1", tipo: "base", tipo_bloque: "numero", descripcion: "Número de válidos al primer llamado" },
+  { nombre: "Segundo llamado",    grupo: "Segundo llamado",   offset_minutos:   -5, referencia_show: "show1", tipo: "base", tipo_bloque: "numero", descripcion: "Número de válidos al segundo llamado" },
+  { nombre: "Primer show",        grupo: "Primer show",       offset_minutos:    0, referencia_show: "show1", tipo: "base", tipo_bloque: "foto" },
+  { nombre: "Tercer llamado",     grupo: "Tercer llamado",    offset_minutos:    5, referencia_show: "show1", tipo: "base", tipo_bloque: "numero", descripcion: "Número de válidos al tercer llamado" },
+  { nombre: "Cierre puertas",     grupo: "Cierre puertas",    offset_minutos:   10, referencia_show: "show1", tipo: "base", tipo_bloque: "foto" },
+  { nombre: "Fin de show",        grupo: "Salida público",    offset_minutos:   90, referencia_show: "show1", tipo: "base", tipo_bloque: "foto" },
+];
+
 // ── TJE (siempre 2 shows, sin opción de segundo show) ────────────────────────
 
 const TJE_FULL: PasoPlantilla[] = [
@@ -291,6 +313,8 @@ export function buildPasos(
   } else if (tipo === "BOL") {
     ps.push(...BOL_FULL);
     if (desmontaje) ps.push(...BOL_DESMONTAJE);
+  } else if (tipo === "IGW") {
+    ps.push(...IGW_BASE);
   }
 
   return ps.map((p, i) => ({ ...p, orden: i + 1 })) as (PasoPlantilla & { orden: number })[];

@@ -57,7 +57,42 @@ export function AdminEventoDetallePage() {
     const eventoData: Evento = { ...ev, coord_nombre: roleData?.nombre || "—", coordinador_id: ev.coordinador_id };
     setEvento(eventoData);
 
-    if (!cps || cps.length === 0) { setCheckpoints([]); setLoading(false); return; }
+    if (!cps || cps.length === 0) {
+      // Auto-apply matching plantilla if event has none
+      const matchingPlantilla = (plantas || []).find(
+        p => p.tipo_evento === eventoData.formato?.toUpperCase()
+      );
+      if (matchingPlantilla) {
+        const { data: items } = await supabase
+          .from("montaje_plantilla_items")
+          .select("*")
+          .eq("plantilla_id", matchingPlantilla.id)
+          .order("orden");
+        if (items && items.length > 0) {
+          await supabase.from("montaje_checkpoints").insert(
+            items.map((item: any) => ({
+              evento_id: eventoData.id,
+              plantilla_item_id: item.id,
+              nombre: item.nombre,
+              descripcion: item.descripcion,
+              orden: item.orden,
+              tipo_bloque: item.tipo_bloque ?? "foto",
+              grupo: item.grupo ?? null,
+              hora_recordatorio: new Date(
+                getBaseTs(eventoData, (item.referencia_show ?? "show1") as ReferenciaShow) +
+                item.offset_minutos * 60000
+              ).toISOString(),
+            }))
+          );
+          await supabase.from("eventos").update({ plantilla_nombre: matchingPlantilla.nombre }).eq("id", eventoData.id);
+          await load();
+          return;
+        }
+      }
+      setCheckpoints([]);
+      setLoading(false);
+      return;
+    }
 
     const cpIds = cps.map(c => c.id);
     const { data: fotas } = await supabase.from("montaje_fotos").select("id, checkpoint_id, foto_url, mensaje, created_at, coordinador_id").in("checkpoint_id", cpIds).order("created_at");
