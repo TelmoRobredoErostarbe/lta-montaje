@@ -225,7 +225,8 @@ const IGW_SEGUNDO_SHOW: PasoPlantilla[] = [
   { nombre: "Primer llamado 2°",   grupo: "2° Show — llamados",  offset_minutos: 165, referencia_show: "show1", tipo: "segundo_show", tipo_bloque: "numero", descripcion: "Número de válidos al primer llamado" },
   { nombre: "Segundo llamado 2°",  grupo: "2° Show — llamados",  offset_minutos: 175, referencia_show: "show1", tipo: "segundo_show", tipo_bloque: "numero", descripcion: "Número de válidos al segundo llamado" },
   { nombre: "Tercer llamado 2°",   grupo: "2° Show — llamados",  offset_minutos: 185, referencia_show: "show1", tipo: "segundo_show", tipo_bloque: "numero", descripcion: "Número de válidos al tercer llamado" },
-  { nombre: "Cierre puertas 2°",   grupo: "2° Show — inicio",    offset_minutos: 190, referencia_show: "show1", tipo: "segundo_show", tipo_bloque: "foto" },
+  { nombre: "Segundo show",        grupo: "2° Show — inicio",    offset_minutos: 180, referencia_show: "show1", tipo: "segundo_show", tipo_bloque: "foto" },
+  { nombre: "Cierre puertas 2°",   grupo: "2° Show — cierre",    offset_minutos: 190, referencia_show: "show1", tipo: "segundo_show", tipo_bloque: "foto" },
   { nombre: "Fin de show 2°",      grupo: "2° Show — salida",    offset_minutos: 270, referencia_show: "show1", tipo: "segundo_show", tipo_bloque: "foto" },
 ];
 

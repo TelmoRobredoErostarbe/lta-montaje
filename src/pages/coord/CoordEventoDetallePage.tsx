@@ -156,7 +156,20 @@ export function CoordEventoDetallePage() {
   const [remFotos, setRemFotos] = useState<{ salida?: string; retorno?: string }>({});
   const [uploadingRemFoto, setUploadingRemFoto] = useState<"salida" | "retorno" | null>(null);
 
+  const didInitialScroll = useRef(false);
   useEffect(() => { if (id && user) load(); }, [id, user]);
+
+  // Scroll to first incomplete checkpoint after initial load
+  useEffect(() => {
+    if (loading || checkpoints.length === 0 || didInitialScroll.current) return;
+    didInitialScroll.current = true;
+    const firstIncomplete = checkpoints.find(cp => !completoCheckpoint(cp));
+    if (!firstIncomplete) return;
+    requestAnimationFrame(() => {
+      const el = document.getElementById(`cp-${firstIncomplete.id}`);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }, [loading, checkpoints]);
 
   // ── Load ──────────────────────────────────────────────────────────────────
 
@@ -697,7 +710,7 @@ export function CoordEventoDetallePage() {
             const bodegaName = bodegas.find(b => b.id === salidaBodegaId)?.nombre;
             const venueName = venues.find(v => v.id === salidaVenueId)?.nombre;
             return (
-              <TimelineRow key={cp.id} done={salidaOk} isFormulario accentColor={accentColor}>
+              <TimelineRow key={cp.id} id={`cp-${cp.id}`} done={salidaOk} isFormulario accentColor={accentColor}>
                 <RemisionCard etapa="salida" ok={salidaOk} filledCount={filledCount} totalCount={inventarioItems.length} bodegaName={bodegaName} venueName={venueName} fotoUrl={remFotos.salida} onOpen={() => setRemisionModal({ etapa: "salida", step: 0 })} />
               </TimelineRow>
             );
@@ -706,13 +719,13 @@ export function CoordEventoDetallePage() {
             const filledCount = inventarioItems.filter(it => { const r = remRetorno[it.id]; return r && r.cantidad !== null && r.estado !== null; }).length;
             const bodegaName = bodegas.find(b => b.id === retornoBodegaId)?.nombre;
             return (
-              <TimelineRow key={cp.id} done={retornoOk} isFormulario accentColor={accentColor}>
+              <TimelineRow key={cp.id} id={`cp-${cp.id}`} done={retornoOk} isFormulario accentColor={accentColor}>
                 <RemisionCard etapa="retorno" ok={retornoOk} filledCount={filledCount} totalCount={inventarioItems.length} bodegaName={bodegaName} fotoUrl={remFotos.retorno} onOpen={() => setRemisionModal({ etapa: "retorno", step: 0 })} />
               </TimelineRow>
             );
           }
           return (
-            <TimelineRow key={cp.id} done={completoCheckpoint(cp)} stepNumber={globalIdx + 1} accentColor={accentColor}>
+            <TimelineRow key={cp.id} id={`cp-${cp.id}`} done={completoCheckpoint(cp)} stepNumber={globalIdx + 1} accentColor={accentColor}>
               <CheckpointCard cp={cp} idx={globalIdx} onFotoSelect={handleFileSelect} onValorChange={saveValor} onMetaChange={saveCheckpointMeta} accentColor={accentColor} />
             </TimelineRow>
           );
@@ -954,7 +967,8 @@ export function CoordEventoDetallePage() {
 
 // ─── TimelineRow wrapper ──────────────────────────────────────────────────────
 
-function TimelineRow({ done, stepNumber, isFormulario, children }: {
+function TimelineRow({ id, done, stepNumber, isFormulario, children }: {
+  id?: string;
   done: boolean;
   stepNumber?: number;
   isFormulario?: boolean;
@@ -962,7 +976,7 @@ function TimelineRow({ done, stepNumber, isFormulario, children }: {
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex gap-3 items-start">
+    <div id={id} className="flex gap-3 items-start">
       {/* Dot */}
       <div className="shrink-0 relative z-10 mt-3.5">
         <div
