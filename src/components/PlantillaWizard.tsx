@@ -139,7 +139,7 @@ export function PlantillaWizard({ open, onClose, evento, onApply }: Props) {
                   {tipo === "CDL" ? `CDL ${cdlVariant}` : TIPO_LABELS[tipo]}
                 </h2>
                 <p className="text-sm text-slate-500 leading-relaxed">
-                  {tipo === "CDL" && cdlVariant === "A" && "Se aplicarán los pasos base. El coordinador gestionará el segundo show y desmontaje durante el evento."}
+                  {tipo === "CDL" && cdlVariant === "A" && "Se aplicarán los pasos base del show. El coordinador indicará si hay montaje, segundo show, tercer show y desmontaje."}
                   {tipo === "CDL" && cdlVariant === "B" && "Fecha de continuación en serie. Se aplicarán los pasos base."}
                   {tipo === "TJR" && "Se aplicarán los pasos base. El coordinador indicará si hay segundo show y desmontaje."}
                   {tipo === "TJE" && "Se aplicará la plantilla completa con ambos shows. El coordinador confirmará el desmontaje."}
@@ -230,4 +230,4 @@ export function PlantillaWizard({ open, onClose, evento, onApply }: Props) {
 
 // ── export helpers para usar en CoordEventoDetallePage ────────────────────────
 
-export { addMins, CDL_SEGUNDO_SHOW_OFFSETS };
+export { addMins, CDL_SEGUNDO_SHOW_OFFSETS, CDL_TERCER_SHOW_OFFSETS };

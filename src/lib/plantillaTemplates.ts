@@ -1,6 +1,6 @@
 export type ExperienciaType = "CDL" | "TJR" | "TJE" | "BOL" | "IGW";
 export type CDLVariant = "A" | "B";
-export type PasoTipo = "base" | "segundo_show" | "desmontaje";
+export type PasoTipo = "base" | "montaje" | "segundo_show" | "tercer_show" | "desmontaje";
 
 export interface PasoPlantilla {
   nombre: string;
@@ -36,19 +36,24 @@ export function detectExperiencia(codigo: string): { tipo: ExperienciaType | nul
   return { tipo, cdlVariant };
 }
 
-// ── CDL A base (relativo al primer show) ──────────────────────────────────────
+// ── CDL montaje mañana (pasos opcionales, se añaden si hay montaje) ──────────
+
+export const CDL_MONTAJE: PasoPlantilla[] = [
+  { nombre: "Salida de bodega",         grupo: "Cargue de camión",        offset_minutos: -421, referencia_show: "show1", tipo: "montaje", tipo_bloque: "formulario_salida" },
+  { nombre: "Cargue de bodega",         grupo: "Cargue de camión",        offset_minutos: -420, referencia_show: "show1", tipo: "montaje", tipo_bloque: "foto" },
+  { nombre: "Descargue Venue",          grupo: "Cargue de camión",        offset_minutos: -360, referencia_show: "show1", tipo: "montaje", tipo_bloque: "foto" },
+  { nombre: "Llegada Staff",            grupo: "Llegada a venue",         offset_minutos: -360, referencia_show: "show1", tipo: "montaje", tipo_bloque: "checkbox" },
+  { nombre: "Inicio Montaje",           grupo: "Montaje",                 offset_minutos: -330, referencia_show: "show1", tipo: "montaje", tipo_bloque: "foto" },
+  { nombre: "Avance Montaje",           grupo: "Montaje",                 offset_minutos: -240, referencia_show: "show1", tipo: "montaje", tipo_bloque: "foto" },
+  { nombre: "Tarima lista",             grupo: "Montaje",                 offset_minutos: -180, referencia_show: "show1", tipo: "montaje", tipo_bloque: "foto" },
+  { nombre: "Lobby Listo",              grupo: "Montaje",                 offset_minutos: -120, referencia_show: "show1", tipo: "montaje", tipo_bloque: "foto" },
+  { nombre: "Escenario listo",          grupo: "Montaje",                 offset_minutos: -120, referencia_show: "show1", tipo: "montaje", tipo_bloque: "foto" },
+  { nombre: "Prueba de sonido/ensayo",  grupo: "Prueba de sonido/ensayo", offset_minutos:  -90, referencia_show: "show1", tipo: "montaje", tipo_bloque: "foto" },
+];
+
+// ── CDL A base — pasos del show (sin montaje mañana) ─────────────────────────
 
 const CDL_A_BASE: PasoPlantilla[] = [
-  { nombre: "Salida de bodega",                grupo: "Cargue de camión",       offset_minutos: -421, referencia_show: "show1", tipo: "base", tipo_bloque: "formulario_salida" },
-  { nombre: "Cargue de bodega",               grupo: "Cargue de camión",       offset_minutos: -420, referencia_show: "show1", tipo: "base", tipo_bloque: "foto" },
-  { nombre: "Descargue Venue",                grupo: "Cargue de camión",       offset_minutos: -360, referencia_show: "show1", tipo: "base", tipo_bloque: "foto" },
-  { nombre: "Llegada Staff",                  grupo: "Llegada a venue",        offset_minutos: -360, referencia_show: "show1", tipo: "base", tipo_bloque: "checkbox" },
-  { nombre: "Inicio Montaje",                 grupo: "Montaje",                offset_minutos: -330, referencia_show: "show1", tipo: "base", tipo_bloque: "foto" },
-  { nombre: "Avance Montaje",                 grupo: "Montaje",                offset_minutos: -240, referencia_show: "show1", tipo: "base", tipo_bloque: "foto" },
-  { nombre: "Tarima lista",                   grupo: "Montaje",                offset_minutos: -180, referencia_show: "show1", tipo: "base", tipo_bloque: "foto" },
-  { nombre: "Lobby Listo",                    grupo: "Montaje",                offset_minutos: -120, referencia_show: "show1", tipo: "base", tipo_bloque: "foto" },
-  { nombre: "Escenario listo",               grupo: "Montaje",                offset_minutos: -120, referencia_show: "show1", tipo: "base", tipo_bloque: "foto" },
-  { nombre: "Prueba de sonido/ensayo",        grupo: "Prueba de sonido/ensayo", offset_minutos:  -90, referencia_show: "show1", tipo: "base", tipo_bloque: "foto" },
   { nombre: "Pendones y zonas",              grupo: "Recinto listo",          offset_minutos:  -60, referencia_show: "show1", tipo: "base", tipo_bloque: "foto" },
   { nombre: "Selfie staff listo",            grupo: "Recinto listo",          offset_minutos:  -60, referencia_show: "show1", tipo: "base", tipo_bloque: "foto" },
   { nombre: "Catering músicos",              grupo: "Recinto listo",          offset_minutos:  -60, referencia_show: "show1", tipo: "base", tipo_bloque: "foto" },
@@ -118,45 +123,59 @@ export const CDL_SEGUNDO_SHOW_OPTIONS: PasoPlantilla[][] = [
   ],
 ];
 
-// CDL desmontaje (varía según variante de segundo show; -1 = sin segundo show)
-const CDL_DESMONTAJE: Record<number, PasoPlantilla[]> = {
-  [-1]: [
-    { nombre: "Desmontaje",            grupo: "Desmontaje",        offset_minutos:  90, referencia_show: "show1", tipo: "desmontaje", tipo_bloque: "foto" },
-    { nombre: "Venue entregado",       grupo: "Desmontaje",        offset_minutos: 150, referencia_show: "show1", tipo: "desmontaje", tipo_bloque: "foto" },
-    { nombre: "Cargue al camión",      grupo: "Desmontaje",        offset_minutos: 210, referencia_show: "show1", tipo: "desmontaje", tipo_bloque: "foto" },
-    { nombre: "Llegada a bodega",      grupo: "Desmontaje",        offset_minutos: 270, referencia_show: "show1", tipo: "desmontaje", tipo_bloque: "foto" },
-    { nombre: "Descargue bodega",      grupo: "Desmontaje",        offset_minutos: 280, referencia_show: "show1", tipo: "desmontaje", tipo_bloque: "foto" },
-    { nombre: "Bodega guardada",       grupo: "Desmontaje",        offset_minutos: 290, referencia_show: "show1", tipo: "desmontaje", tipo_bloque: "foto" },
-    { nombre: "Inventario de retorno", grupo: "Desmontaje",        offset_minutos: 291, referencia_show: "show1", tipo: "desmontaje", tipo_bloque: "formulario_retorno" },
+// ── CDL tercer show (3 variantes: show3 a +240/+255/+270 desde show1) ────────
+
+export const CDL_TERCER_SHOW_OFFSETS = [240, 255, 270] as const;
+
+export const CDL_TERCER_SHOW_OPTIONS: PasoPlantilla[][] = [
+  // 0: show3 a +240 min
+  [
+    { nombre: "QR actualizado show 3",               grupo: "Recinto listo (show 3)",    offset_minutos: 205, referencia_show: "show1", tipo: "tercer_show", tipo_bloque: "checkbox" },
+    { nombre: "Apertura de puertas",                 grupo: "Apertura puertas (show 3)", offset_minutos: 210, referencia_show: "show1", tipo: "tercer_show", tipo_bloque: "foto" },
+    { nombre: "Primer llamado",                      grupo: "Primer llamado (show 3)",   offset_minutos: 225, referencia_show: "show1", tipo: "tercer_show", tipo_bloque: "numero", descripcion: "Número de válidos al primer llamado" },
+    { nombre: "Segundo llamado",                     grupo: "Segundo llamado (show 3)",  offset_minutos: 235, referencia_show: "show1", tipo: "tercer_show", tipo_bloque: "numero", descripcion: "Número de válidos al segundo llamado" },
+    { nombre: "Inicio show 3 / músicos en escenario", grupo: "Tercer show",             offset_minutos: 240, referencia_show: "show1", tipo: "tercer_show", tipo_bloque: "foto" },
+    { nombre: "Tercer llamado",                      grupo: "Tercer llamado (show 3)",   offset_minutos: 245, referencia_show: "show1", tipo: "tercer_show", tipo_bloque: "numero", descripcion: "Número de válidos al tercer llamado" },
+    { nombre: "Cierre puertas",                      grupo: "Cierre puertas (show 3)",   offset_minutos: 250, referencia_show: "show1", tipo: "tercer_show", tipo_bloque: "foto" },
+    { nombre: "Fin show 3",                          grupo: "Salida público (show 3)",   offset_minutos: 315, referencia_show: "show1", tipo: "tercer_show", tipo_bloque: "foto" },
   ],
-  [0]: [
-    { nombre: "Desmontaje",            grupo: "Desmontaje",        offset_minutos: 210, referencia_show: "show1", tipo: "desmontaje", tipo_bloque: "foto" },
-    { nombre: "Venue entregado",       grupo: "Desmontaje",        offset_minutos: 270, referencia_show: "show1", tipo: "desmontaje", tipo_bloque: "foto" },
-    { nombre: "Cargue al camión",      grupo: "Desmontaje",        offset_minutos: 330, referencia_show: "show1", tipo: "desmontaje", tipo_bloque: "foto" },
-    { nombre: "Llegada a bodega",      grupo: "Desmontaje",        offset_minutos: 390, referencia_show: "show1", tipo: "desmontaje", tipo_bloque: "foto" },
-    { nombre: "Descargue bodega",      grupo: "Desmontaje",        offset_minutos: 400, referencia_show: "show1", tipo: "desmontaje", tipo_bloque: "foto" },
-    { nombre: "Bodega guardada",       grupo: "Desmontaje",        offset_minutos: 410, referencia_show: "show1", tipo: "desmontaje", tipo_bloque: "foto" },
-    { nombre: "Inventario de retorno", grupo: "Desmontaje",        offset_minutos: 411, referencia_show: "show1", tipo: "desmontaje", tipo_bloque: "formulario_retorno" },
+  // 1: show3 a +255 min
+  [
+    { nombre: "QR actualizado show 3",               grupo: "Recinto listo (show 3)",    offset_minutos: 220, referencia_show: "show1", tipo: "tercer_show", tipo_bloque: "checkbox" },
+    { nombre: "Apertura de puertas",                 grupo: "Apertura puertas (show 3)", offset_minutos: 225, referencia_show: "show1", tipo: "tercer_show", tipo_bloque: "foto" },
+    { nombre: "Primer llamado",                      grupo: "Primer llamado (show 3)",   offset_minutos: 240, referencia_show: "show1", tipo: "tercer_show", tipo_bloque: "numero", descripcion: "Número de válidos al primer llamado" },
+    { nombre: "Segundo llamado",                     grupo: "Segundo llamado (show 3)",  offset_minutos: 250, referencia_show: "show1", tipo: "tercer_show", tipo_bloque: "numero", descripcion: "Número de válidos al segundo llamado" },
+    { nombre: "Inicio show 3 / músicos en escenario", grupo: "Tercer show",             offset_minutos: 255, referencia_show: "show1", tipo: "tercer_show", tipo_bloque: "foto" },
+    { nombre: "Tercer llamado",                      grupo: "Tercer llamado (show 3)",   offset_minutos: 260, referencia_show: "show1", tipo: "tercer_show", tipo_bloque: "numero", descripcion: "Número de válidos al tercer llamado" },
+    { nombre: "Cierre puertas",                      grupo: "Cierre puertas (show 3)",   offset_minutos: 265, referencia_show: "show1", tipo: "tercer_show", tipo_bloque: "foto" },
+    { nombre: "Fin show 3",                          grupo: "Salida público (show 3)",   offset_minutos: 330, referencia_show: "show1", tipo: "tercer_show", tipo_bloque: "foto" },
   ],
-  [1]: [
-    { nombre: "Desmontaje",            grupo: "Desmontaje",        offset_minutos: 225, referencia_show: "show1", tipo: "desmontaje", tipo_bloque: "foto" },
-    { nombre: "Venue entregado",       grupo: "Desmontaje",        offset_minutos: 285, referencia_show: "show1", tipo: "desmontaje", tipo_bloque: "foto" },
-    { nombre: "Cargue al camión",      grupo: "Desmontaje",        offset_minutos: 345, referencia_show: "show1", tipo: "desmontaje", tipo_bloque: "foto" },
-    { nombre: "Llegada a bodega",      grupo: "Desmontaje",        offset_minutos: 405, referencia_show: "show1", tipo: "desmontaje", tipo_bloque: "foto" },
-    { nombre: "Descargue bodega",      grupo: "Desmontaje",        offset_minutos: 415, referencia_show: "show1", tipo: "desmontaje", tipo_bloque: "foto" },
-    { nombre: "Bodega guardada",       grupo: "Desmontaje",        offset_minutos: 425, referencia_show: "show1", tipo: "desmontaje", tipo_bloque: "foto" },
-    { nombre: "Inventario de retorno", grupo: "Desmontaje",        offset_minutos: 426, referencia_show: "show1", tipo: "desmontaje", tipo_bloque: "formulario_retorno" },
+  // 2: show3 a +270 min
+  [
+    { nombre: "QR actualizado show 3",               grupo: "Recinto listo (show 3)",    offset_minutos: 235, referencia_show: "show1", tipo: "tercer_show", tipo_bloque: "checkbox" },
+    { nombre: "Apertura de puertas",                 grupo: "Apertura puertas (show 3)", offset_minutos: 240, referencia_show: "show1", tipo: "tercer_show", tipo_bloque: "foto" },
+    { nombre: "Primer llamado",                      grupo: "Primer llamado (show 3)",   offset_minutos: 255, referencia_show: "show1", tipo: "tercer_show", tipo_bloque: "numero", descripcion: "Número de válidos al primer llamado" },
+    { nombre: "Segundo llamado",                     grupo: "Segundo llamado (show 3)",  offset_minutos: 265, referencia_show: "show1", tipo: "tercer_show", tipo_bloque: "numero", descripcion: "Número de válidos al segundo llamado" },
+    { nombre: "Inicio show 3 / músicos en escenario", grupo: "Tercer show",             offset_minutos: 270, referencia_show: "show1", tipo: "tercer_show", tipo_bloque: "foto" },
+    { nombre: "Tercer llamado",                      grupo: "Tercer llamado (show 3)",   offset_minutos: 275, referencia_show: "show1", tipo: "tercer_show", tipo_bloque: "numero", descripcion: "Número de válidos al tercer llamado" },
+    { nombre: "Cierre puertas",                      grupo: "Cierre puertas (show 3)",   offset_minutos: 280, referencia_show: "show1", tipo: "tercer_show", tipo_bloque: "foto" },
+    { nombre: "Fin show 3",                          grupo: "Salida público (show 3)",   offset_minutos: 345, referencia_show: "show1", tipo: "tercer_show", tipo_bloque: "foto" },
   ],
-  [2]: [
-    { nombre: "Desmontaje",            grupo: "Desmontaje",        offset_minutos: 240, referencia_show: "show1", tipo: "desmontaje", tipo_bloque: "foto" },
-    { nombre: "Venue entregado",       grupo: "Desmontaje",        offset_minutos: 300, referencia_show: "show1", tipo: "desmontaje", tipo_bloque: "foto" },
-    { nombre: "Cargue al camión",      grupo: "Desmontaje",        offset_minutos: 360, referencia_show: "show1", tipo: "desmontaje", tipo_bloque: "foto" },
-    { nombre: "Llegada a bodega",      grupo: "Desmontaje",        offset_minutos: 420, referencia_show: "show1", tipo: "desmontaje", tipo_bloque: "foto" },
-    { nombre: "Descargue bodega",      grupo: "Desmontaje",        offset_minutos: 430, referencia_show: "show1", tipo: "desmontaje", tipo_bloque: "foto" },
-    { nombre: "Bodega guardada",       grupo: "Desmontaje",        offset_minutos: 440, referencia_show: "show1", tipo: "desmontaje", tipo_bloque: "foto" },
-    { nombre: "Inventario de retorno", grupo: "Desmontaje",        offset_minutos: 441, referencia_show: "show1", tipo: "desmontaje", tipo_bloque: "formulario_retorno" },
-  ],
-};
+];
+
+// CDL desmontaje — generado dinámicamente según offset del último show
+// base = últimoShowStart + 90 (75 min show + 15 min gap)
+function buildCDLDesmontaje(base: number): PasoPlantilla[] {
+  return [
+    { nombre: "Desmontaje",            grupo: "Desmontaje", offset_minutos: base,       referencia_show: "show1", tipo: "desmontaje", tipo_bloque: "foto" },
+    { nombre: "Venue entregado",       grupo: "Desmontaje", offset_minutos: base +  60, referencia_show: "show1", tipo: "desmontaje", tipo_bloque: "foto" },
+    { nombre: "Cargue al camión",      grupo: "Desmontaje", offset_minutos: base + 120, referencia_show: "show1", tipo: "desmontaje", tipo_bloque: "foto" },
+    { nombre: "Llegada a bodega",      grupo: "Desmontaje", offset_minutos: base + 180, referencia_show: "show1", tipo: "desmontaje", tipo_bloque: "foto" },
+    { nombre: "Descargue bodega",      grupo: "Desmontaje", offset_minutos: base + 190, referencia_show: "show1", tipo: "desmontaje", tipo_bloque: "foto" },
+    { nombre: "Bodega guardada",       grupo: "Desmontaje", offset_minutos: base + 200, referencia_show: "show1", tipo: "desmontaje", tipo_bloque: "foto" },
+    { nombre: "Inventario de retorno", grupo: "Desmontaje", offset_minutos: base + 201, referencia_show: "show1", tipo: "desmontaje", tipo_bloque: "formulario_retorno" },
+  ];
+}
 
 // ── TJR ───────────────────────────────────────────────────────────────────────
 
@@ -320,13 +339,23 @@ export function buildPasos(
   segundoShow: boolean,
   segundoShowOption: number, // 0/1/2 para CDL; ignorado para TJR/TJE/BOL
   desmontaje: boolean,
+  conMontaje = false,
+  tercerShow = false,
+  tercerShowOption = 0,
 ): PasoPlantilla[] {
   const ps: PasoPlantilla[] = [];
 
   if (tipo === "CDL") {
+    if (conMontaje) ps.push(...CDL_MONTAJE);
     ps.push(...(cdlVariant === "A" ? CDL_A_BASE : CDL_B_BASE));
     if (segundoShow) ps.push(...CDL_SEGUNDO_SHOW_OPTIONS[segundoShowOption]);
-    if (desmontaje) ps.push(...(CDL_DESMONTAJE[segundoShow ? segundoShowOption : -1] ?? CDL_DESMONTAJE[0]));
+    if (tercerShow) ps.push(...(CDL_TERCER_SHOW_OPTIONS[tercerShowOption] ?? CDL_TERCER_SHOW_OPTIONS[0]));
+    if (desmontaje) {
+      let base = 90;
+      if (tercerShow) base = (CDL_TERCER_SHOW_OFFSETS[tercerShowOption] ?? 240) + 90;
+      else if (segundoShow) base = (CDL_SEGUNDO_SHOW_OFFSETS[segundoShowOption] ?? 120) + 90;
+      ps.push(...buildCDLDesmontaje(base));
+    }
   } else if (tipo === "TJR") {
     ps.push(...TJR_BASE);
     if (segundoShow) ps.push(...TJR_SEGUNDO_SHOW);

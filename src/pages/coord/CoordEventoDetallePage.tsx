@@ -7,9 +7,9 @@ import { formatHora, formatTs } from "@/lib/utils";
 import {
   ArrowLeft, Camera, CheckCircle2, Clock, Upload, X, Settings,
   PackageOpen, PackageCheck, ChevronDown, ChevronUp, Check, Image as ImageIcon,
-  MapPin, CalendarDays, Music2, Wrench,
+  MapPin, CalendarDays, Music2, Wrench, Truck,
 } from "lucide-react";
-import { detectExperiencia, buildPasos, CDL_SEGUNDO_SHOW_OFFSETS, type ExperienciaType, type CDLVariant } from "@/lib/plantillaTemplates";
+import { detectExperiencia, buildPasos, CDL_SEGUNDO_SHOW_OFFSETS, CDL_TERCER_SHOW_OFFSETS, type ExperienciaType, type CDLVariant } from "@/lib/plantillaTemplates";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -47,6 +47,9 @@ interface Evento {
   con_desmontaje: boolean | null;
   segundo_show_opcion: number | null;
   serie: number | null;
+  con_montaje: boolean | null;
+  tercer_show: boolean | null;
+  tercer_show_opcion: number | null;
 }
 
 function resolveCdlVariant(ev: Evento): CDLVariant {
@@ -177,7 +180,7 @@ export function CoordEventoDetallePage() {
     const scrollY = silent ? window.scrollY : 0;
     if (!silent) setLoading(true);
     const [{ data: ev }, { data: cps }, { data: plantas }] = await Promise.all([
-      supabase.from("eventos").select("id, codigo, ciudad, fecha, hora_inicio, hora_inicio_show, hora_segundo_show, formato, segundo_show, con_desmontaje, segundo_show_opcion, serie").eq("id", id!).maybeSingle(),
+      supabase.from("eventos").select("id, codigo, ciudad, fecha, hora_inicio, hora_inicio_show, hora_segundo_show, formato, segundo_show, con_desmontaje, segundo_show_opcion, serie, con_montaje, tercer_show, tercer_show_opcion").eq("id", id!).maybeSingle(),
       supabase.from("montaje_checkpoints").select("id, nombre, descripcion, orden, hora_recordatorio, valor, plantilla_item_id, tipo_bloque, grupo, no_aplica, notas, updated_by").eq("evento_id", id!).order("orden"),
       supabase.from("montaje_plantillas").select("id, tipo_evento, nombre").order("tipo_evento"),
     ]);
@@ -328,6 +331,77 @@ export function CoordEventoDetallePage() {
 
   // ── Preguntas dinámicas ────────────────────────────────────────────────────
 
+  async function responderMontaje(valor: boolean) {
+    if (!evento) return;
+    setRespondiendo("montaje");
+    const cdlVariant = resolveCdlVariant(evento);
+    const { error: updErr } = await supabase.from("eventos").update({ con_montaje: valor }).eq("id", evento.id);
+    if (updErr) { alert("Error: " + updErr.message); setRespondiendo(null); return; }
+
+    if (valor) {
+      const horaBase = evento.hora_inicio_show ?? evento.hora_inicio ?? "10:00";
+      const baseMs = new Date(`${evento.fecha}T${horaBase}-05:00`).getTime();
+      const montajePasos = buildPasos("CDL", cdlVariant, false, 0, false, true, false, 0)
+        .filter(p => p.tipo === "montaje");
+      if (montajePasos.length > 0) {
+        const N = montajePasos.length;
+        const { error: insErr } = await supabase.from("montaje_checkpoints").insert(
+          montajePasos.map((p, i) => ({
+            evento_id: evento.id,
+            nombre: p.nombre,
+            descripcion: (p as any).descripcion ?? null,
+            orden: -(N - i), // ordenes negativos → aparecen antes del show1 en ORDER BY orden
+            hora_recordatorio: new Date(baseMs + p.offset_minutos * 60000).toISOString(),
+            tipo_bloque: p.tipo_bloque ?? "foto",
+            grupo: (p as any).grupo ?? null,
+          }))
+        );
+        if (insErr) { alert("Error insertando pasos montaje: " + insErr.message); }
+      }
+    }
+    setRespondiendo(null);
+    await load(true);
+  }
+
+  async function responderTercerShow(valor: boolean, opcion?: number) {
+    if (!evento) return;
+    setRespondiendo("tercer_show");
+    const cdlVariant = resolveCdlVariant(evento);
+    const update: any = { tercer_show: valor };
+    if (!valor) update.tercer_show_opcion = null;
+    if (valor && opcion !== undefined) update.tercer_show_opcion = opcion;
+    const { error: updErr } = await supabase.from("eventos").update(update).eq("id", evento.id);
+    if (updErr) { alert("Error: " + updErr.message); setRespondiendo(null); return; }
+
+    if (valor && opcion !== undefined) {
+      const horaBase = evento.hora_inicio_show ?? evento.hora_inicio ?? "10:00";
+      const baseMs = new Date(`${evento.fecha}T${horaBase}-05:00`).getTime();
+      const maxOrden = checkpoints.reduce((m, c) => Math.max(m, c.orden), 0);
+      const tercerShowPasos = buildPasos("CDL", cdlVariant, true, evento.segundo_show_opcion ?? 0, false, false, true, opcion)
+        .filter(p => p.tipo === "tercer_show");
+      if (tercerShowPasos.length > 0) {
+        const { error: insErr } = await supabase.from("montaje_checkpoints").insert(
+          tercerShowPasos.map((p, i) => ({
+            evento_id: evento.id,
+            nombre: p.nombre,
+            descripcion: (p as any).descripcion ?? null,
+            orden: maxOrden + i + 1,
+            hora_recordatorio: new Date(baseMs + p.offset_minutos * 60000).toISOString(),
+            tipo_bloque: p.tipo_bloque ?? "foto",
+            grupo: (p as any).grupo ?? null,
+          }))
+        );
+        if (insErr) { alert("Error insertando pasos tercer show: " + insErr.message); }
+      }
+    }
+    setRespondiendo(null);
+    await load(true);
+  }
+
+  async function responderHoraTercerShow(opcion: number) {
+    await responderTercerShow(true, opcion);
+  }
+
   async function responderSegundoShow(valor: boolean, opcion?: number) {
     if (!evento) return;
     setRespondiendo("segundo_show");
@@ -402,7 +476,8 @@ export function CoordEventoDetallePage() {
         const baseMs = new Date(`${evento.fecha}T${horaBase}-05:00`).getTime();
         const maxOrden = checkpoints.reduce((m, c) => Math.max(m, c.orden), 0);
         const opcion = evento.segundo_show_opcion ?? 0;
-        const desmontajePasos = buildPasos(tipo, cdlVariant, evento.segundo_show ?? false, opcion, true)
+        const tercerShowOpcion = evento.tercer_show_opcion ?? 0;
+        const desmontajePasos = buildPasos(tipo, cdlVariant, evento.segundo_show ?? false, opcion, true, false, evento.tercer_show ?? false, tercerShowOpcion)
           .filter(p => p.tipo === "desmontaje");
         if (desmontajePasos.length > 0) {
           const { error: insErr } = await supabase.from("montaje_checkpoints").insert(
@@ -681,10 +756,22 @@ export function CoordEventoDetallePage() {
           ?? (VALID_TIPOS.includes(evento.formato?.toUpperCase() as ExperienciaType)
               ? evento.formato?.toUpperCase() as ExperienciaType
               : null);
-        const needsSegundoShow = !!tipo && (tipo === "CDL" || tipo === "TJR" || tipo === "IGW") && evento.segundo_show === null;
+        const needsMontaje = !!tipo && tipo === "CDL" && evento.con_montaje === null;
+        const needsSegundoShow = !!tipo && evento.segundo_show === null && (
+          ((tipo === "CDL") && evento.con_montaje !== null) ||
+          tipo === "TJR" || tipo === "IGW"
+        );
         const needsHora = !!tipo && tipo === "CDL" && evento.segundo_show === true && evento.segundo_show_opcion === null;
+        const needsTercerShow = !!tipo && tipo === "CDL" && evento.segundo_show === true && evento.segundo_show_opcion !== null && evento.tercer_show === null;
+        const needsHoraTercerShow = !!tipo && tipo === "CDL" && evento.tercer_show === true && evento.tercer_show_opcion === null;
+        const cdlDesmontajeReady = tipo === "CDL" && evento.con_montaje !== null && (
+          evento.segundo_show === false ||
+          (evento.segundo_show === true && (evento.tercer_show === false || (evento.tercer_show === true && evento.tercer_show_opcion !== null)))
+        );
         const needsDesmontaje = !!tipo && evento.con_desmontaje === null && (
-          evento.segundo_show !== null || tipo === "TJE" || tipo === "BOL" || tipo === "IGW"
+          tipo === "TJE" || tipo === "BOL" || tipo === "IGW" ||
+          (tipo === "TJR" && evento.segundo_show !== null) ||
+          cdlDesmontajeReady
         );
 
         const primerShowTime = evento.hora_inicio_show?.slice(0, 5) ?? "18:00";
@@ -790,6 +877,34 @@ export function CoordEventoDetallePage() {
 
                 {/* ── Preguntas inline al final del timeline ── */}
 
+                {/* ¿Hay montaje? (CDL) */}
+                {needsMontaje && (
+                  <div className="flex gap-3 items-start">
+                    <div className="shrink-0 relative z-10 mt-3.5">
+                      <div className="w-7 h-7 rounded-full flex items-center justify-center border-2" style={{ background: "#fefce8", borderColor: "#eab308" }}>
+                        <Truck size={13} style={{ color: "#ca8a04" }} />
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0 card-crm p-4">
+                      <p className="font-semibold text-sm mb-0.5" style={{ color: "hsl(222 47% 11%)" }}>¿Hay montaje esta mañana?</p>
+                      <p className="text-xs mb-3" style={{ color: "hsl(218 11% 65%)" }}>Se añadirán los pasos de cargue, descargue y montaje en venue</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button onClick={() => responderMontaje(true)} disabled={respondiendo === "montaje"}
+                          className="py-3 rounded-xl text-sm font-semibold transition-all active:scale-95 disabled:opacity-50"
+                          style={{ background: "#fef9c3", color: "#713f12" }}>Sí</button>
+                        <button onClick={() => responderMontaje(false)} disabled={respondiendo === "montaje"}
+                          className="py-3 rounded-xl text-sm font-semibold transition-all active:scale-95 disabled:opacity-50"
+                          style={{ background: "hsl(220 13% 95%)", color: "hsl(220 9% 46%)" }}>No</button>
+                      </div>
+                      {respondiendo === "montaje" && (
+                        <div className="flex items-center justify-center gap-2 mt-2 text-xs" style={{ color: "hsl(218 11% 65%)" }}>
+                          <div className="w-3 h-3 border-2 border-slate-200 border-t-slate-500 rounded-full animate-spin" /> Guardando…
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {/* ¿Segundo show? */}
                 {needsSegundoShow && (
                   <div className="flex gap-3 items-start">
@@ -840,6 +955,64 @@ export function CoordEventoDetallePage() {
                         ))}
                       </div>
                       {respondiendo === "segundo_show" && (
+                        <div className="flex items-center justify-center gap-2 mt-2 text-xs" style={{ color: "hsl(218 11% 65%)" }}>
+                          <div className="w-3 h-3 border-2 border-slate-200 border-t-slate-500 rounded-full animate-spin" /> Guardando…
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* ¿Tercer show? (CDL) */}
+                {needsTercerShow && (
+                  <div className="flex gap-3 items-start">
+                    <div className="shrink-0 relative z-10 mt-3.5">
+                      <div className="w-7 h-7 rounded-full flex items-center justify-center border-2" style={{ background: "#f0fdf4", borderColor: "#10b981" }}>
+                        <Music2 size={13} style={{ color: "#10b981" }} />
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0 card-crm p-4">
+                      <p className="font-semibold text-sm mb-0.5" style={{ color: "hsl(222 47% 11%)" }}>¿Tiene tercer show?</p>
+                      <p className="text-xs mb-3" style={{ color: "hsl(218 11% 65%)" }}>Se añadirán los pasos del tercer show</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button onClick={() => responderTercerShow(true)} disabled={respondiendo === "tercer_show"}
+                          className="py-3 rounded-xl text-sm font-semibold transition-all active:scale-95 disabled:opacity-50"
+                          style={{ background: "#d1fae5", color: "#065f46" }}>Sí</button>
+                        <button onClick={() => responderTercerShow(false)} disabled={respondiendo === "tercer_show"}
+                          className="py-3 rounded-xl text-sm font-semibold transition-all active:scale-95 disabled:opacity-50"
+                          style={{ background: "hsl(220 13% 95%)", color: "hsl(220 9% 46%)" }}>No</button>
+                      </div>
+                      {respondiendo === "tercer_show" && (
+                        <div className="flex items-center justify-center gap-2 mt-2 text-xs" style={{ color: "hsl(218 11% 65%)" }}>
+                          <div className="w-3 h-3 border-2 border-slate-200 border-t-slate-500 rounded-full animate-spin" /> Guardando…
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* ¿A qué hora el tercer show? (CDL) */}
+                {needsHoraTercerShow && (
+                  <div className="flex gap-3 items-start">
+                    <div className="shrink-0 relative z-10 mt-3.5">
+                      <div className="w-7 h-7 rounded-full flex items-center justify-center border-2" style={{ background: "#f0fdf4", borderColor: "#10b981" }}>
+                        <Clock size={13} style={{ color: "#10b981" }} />
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0 card-crm p-4">
+                      <p className="font-semibold text-sm mb-0.5" style={{ color: "hsl(222 47% 11%)" }}>¿A qué hora es el tercer show?</p>
+                      <p className="text-xs mb-3" style={{ color: "hsl(218 11% 65%)" }}>Desde el primer show a las {primerShowTime}</p>
+                      <div className="flex flex-col gap-2">
+                        {CDL_TERCER_SHOW_OFFSETS.map((offset, idx) => (
+                          <button key={idx} onClick={() => responderHoraTercerShow(idx)} disabled={respondiendo === "tercer_show"}
+                            className="flex items-center justify-between px-4 py-3 rounded-xl transition-all active:scale-[.98] disabled:opacity-50"
+                            style={{ background: "hsl(220 13% 96%)", border: "1.5px solid hsl(220 13% 88%)" }}>
+                            <span className="text-xs text-slate-500">+{["4h", "4h 15m", "4h 30m"][idx]}</span>
+                            <span className="text-lg font-bold tabular-nums" style={{ color: "hsl(222 47% 11%)" }}>{addMins(primerShowTime, offset)}</span>
+                          </button>
+                        ))}
+                      </div>
+                      {respondiendo === "tercer_show" && (
                         <div className="flex items-center justify-center gap-2 mt-2 text-xs" style={{ color: "hsl(218 11% 65%)" }}>
                           <div className="w-3 h-3 border-2 border-slate-200 border-t-slate-500 rounded-full animate-spin" /> Guardando…
                         </div>
